@@ -1,7 +1,23 @@
 import type { AuthResponse, Task, User } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/v1";
-export const BACKEND_URL = API_BASE.replace(/\/api\/v1\/?$/, "");
+export const getApiBase = (): string => {
+  const envBase = process.env.NEXT_PUBLIC_API_BASE;
+  if (envBase && !envBase.includes("localhost") && !envBase.includes("127.0.0.1")) {
+    return envBase;
+  }
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1"
+  ) {
+    return "https://apex-backend-fihp.onrender.com/api/v1";
+  }
+  return envBase || "http://localhost:8000/api/v1";
+};
+
+export const getBackendUrl = (): string => {
+  return getApiBase().replace(/\/api\/v1\/?$/, "");
+};
 
 export const getToken = (): string | null => {
   if (typeof window === "undefined") {
@@ -50,7 +66,7 @@ const handleJsonResponse = async <T>(response: Response): Promise<T> => {
 
 export const api = {
   register: async (data: { email: string; password: string; full_name?: string }): Promise<User> => {
-    const response = await fetch(`${API_BASE}/auth/register`, {
+    const response = await fetch(`${getApiBase()}/auth/register`, {
       method: "POST",
       headers: authHeaders(false),
       body: JSON.stringify({
@@ -63,7 +79,7 @@ export const api = {
   },
 
   login: async (data: { email: string; password: string }): Promise<AuthResponse> => {
-    const response = await fetch(`${API_BASE}/auth/login`, {
+    const response = await fetch(`${getApiBase()}/auth/login`, {
       method: "POST",
       headers: authHeaders(false),
       body: JSON.stringify(data),
@@ -77,7 +93,7 @@ export const api = {
   },
 
   getMe: async (): Promise<User> => {
-    const response = await fetch(`${API_BASE}/auth/me`, {
+    const response = await fetch(`${getApiBase()}/auth/me`, {
       headers: authHeaders(true),
     });
     return handleJsonResponse<User>(response);
@@ -85,7 +101,7 @@ export const api = {
 
   checkHealth: async (): Promise<boolean> => {
     try {
-      const response = await fetch(`${BACKEND_URL}/health`);
+      const response = await fetch(`${getBackendUrl()}/health`);
       return response.ok;
     } catch {
       return false;
@@ -93,7 +109,7 @@ export const api = {
   },
 
   createTask: async (goal: string, title?: string): Promise<Task> => {
-    const response = await fetch(`${API_BASE}/tasks/`, {
+    const response = await fetch(`${getApiBase()}/tasks/`, {
       method: "POST",
       headers: authHeaders(true),
       body: JSON.stringify({
@@ -105,21 +121,21 @@ export const api = {
   },
 
   listTasks: async (): Promise<Task[]> => {
-    const response = await fetch(`${API_BASE}/tasks/`, {
+    const response = await fetch(`${getApiBase()}/tasks/`, {
       headers: authHeaders(true),
     });
     return handleJsonResponse<Task[]>(response);
   },
 
   getTask: async (id: number): Promise<Task> => {
-    const response = await fetch(`${API_BASE}/tasks/${id}`, {
+    const response = await fetch(`${getApiBase()}/tasks/${id}`, {
       headers: authHeaders(true),
     });
     return handleJsonResponse<Task>(response);
   },
 
   deleteTask: async (id: number): Promise<{ detail: string }> => {
-    const response = await fetch(`${API_BASE}/tasks/${id}`, {
+    const response = await fetch(`${getApiBase()}/tasks/${id}`, {
       method: "DELETE",
       headers: authHeaders(true),
     });
@@ -146,7 +162,7 @@ export const api = {
     let closed = false;
     const abortController = new AbortController();
 
-    fetch(`${API_BASE}/tasks/${id}/run`, {
+    fetch(`${getApiBase()}/tasks/${id}/run`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
