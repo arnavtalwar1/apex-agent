@@ -1,0 +1,16 @@
+app/
+tests/
+projects/
+data/
+migrations/
+requirements.txt
+alembic.ini
+Procfile
+render.yaml
+run.bat
+run.ps1
+stop.bat
+qa_report.md
+APEX_Agent_Complete_Guide_and_Operations_Manual.docx
+.venv/
+apex.db
