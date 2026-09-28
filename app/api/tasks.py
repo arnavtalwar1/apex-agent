@@ -25,16 +25,23 @@ async def create_task(
 	current_user: User = Depends(get_current_user),
 	db: AsyncSession = Depends(get_db),
 ) -> Task:
-	task = Task(
-		user_id=current_user.id,
-		title=task_data.title or task_data.goal[:50],
-		goal=task_data.goal,
-		status=TaskStatus.PENDING,
-	)
-	db.add(task)
-	await db.commit()
-	await db.refresh(task)
-	return task
+	try:
+		task = Task(
+			user_id=current_user.id,
+			title=task_data.title or task_data.goal[:50],
+			goal=task_data.goal,
+			status=TaskStatus.PENDING,
+		)
+		db.add(task)
+		await db.commit()
+		await db.refresh(task)
+		return task
+	except Exception as exc:
+		await db.rollback()
+		import traceback
+		trace = traceback.format_exc()
+		print(f"Task creation exception: {trace}")
+		raise HTTPException(status_code=400, detail=f"Database error on task creation: {exc}")
 
 
 @router.get("/", response_model=list[TaskResponse])
