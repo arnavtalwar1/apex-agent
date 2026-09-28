@@ -1,8 +1,10 @@
+import traceback
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api import auth, reflections, tasks
 from app.core.config import settings
@@ -75,3 +77,13 @@ async def api_v1_root() -> dict[str, str]:
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "healthy"}
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    error_trace = traceback.format_exc()
+    print(f"Server error on {request.url}: {error_trace}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "trace": error_trace.splitlines()[-3:] if error_trace else []},
+    )
