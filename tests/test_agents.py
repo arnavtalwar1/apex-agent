@@ -12,6 +12,9 @@ def test_extract_code():
     assert extract_code("```python\nprint('hello')\n```") == "print('hello')"
     assert extract_code("```\nx = 10\n```") == "x = 10"
     assert extract_code("1. Step one\n2. Step two") == ""
+    assert extract_code("```bash\npip install httpx\n```") == ""
+    assert extract_code("```bash\npip install httpx\n```\n```python\nprint('live')\n```") == "print('live')"
+    assert extract_code("```python\nbash pip install httpx\nprint('clean')\n```") == "print('clean')"
 
 
 def test_executor_node_successful_code():

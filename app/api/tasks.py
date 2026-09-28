@@ -152,12 +152,15 @@ async def run_task(
 				state = final_state.values if final_state and final_state.values else {}
 				if db_task:
 					db_task.plan = state.get("plan", "")
-					db_task.final_output = (
-						state.get("execution_result")
-						or state.get("research_data")
-						or state.get("plan")
-						or "Task completed successfully."
-					)
+					exec_res = state.get("execution_result", "")
+					if exec_res and not exec_res.startswith("FAILED") and not exec_res.startswith("EXCEPTION"):
+						db_task.final_output = exec_res
+					else:
+						plan_content = state.get("plan", "")
+						if plan_content:
+							db_task.final_output = f"{plan_content}\n\n---\n### 🧪 Sandbox Verification Note\n```\n{exec_res}\n```" if exec_res else plan_content
+						else:
+							db_task.final_output = exec_res or state.get("research_data") or "Task completed successfully."
 					db_task.reflection_count = state.get("iteration_count", 0)
 					db_task.status = TaskStatus.FAILED if state.get("error") else TaskStatus.COMPLETED
 					await session.commit()

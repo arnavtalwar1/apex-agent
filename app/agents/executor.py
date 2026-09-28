@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -10,8 +11,41 @@ from app.graph.state import AgentState
 
 
 def extract_code(text: str) -> str:
-	delim = "```python" if "```python" in text else "```" if "```" in text else None
-	return text.split(delim, 1)[1].split("```", 1)[0].strip() if delim else ""
+	py_match = re.search(r"```(?:python|py)\b[^\r\n]*[\r\n]+(.*?)```", text, re.DOTALL | re.IGNORECASE)
+	if py_match:
+		raw = py_match.group(1).strip()
+	else:
+		blocks = re.findall(r"```([a-zA-Z0-9_-]*)[^\r\n]*[\r\n]+(.*?)```", text, re.DOTALL)
+		raw = ""
+		ignored_langs = {
+			"bash", "sh", "shell", "zsh", "cmd", "powershell", "ps1",
+			"json", "yaml", "yml", "toml", "dockerfile", "markdown", "md",
+			"sql", "html", "css", "text", "txt"
+		}
+		for lang, content in blocks:
+			if lang.strip().lower() in ignored_langs:
+				continue
+			raw = content.strip()
+			break
+		if not raw and "```" in text and not blocks:
+			parts = text.split("```")
+			if len(parts) >= 3:
+				raw = parts[1].strip()
+
+	if not raw:
+		return ""
+
+	non_code_prefixes = ("pip ", "pip3 ", "!pip ", "%pip ", "npm ", "yarn ", "pnpm ", "curl ", "apt-get ", "bash ", "sh ")
+	lines = raw.splitlines()
+	clean_lines = []
+	for line in lines:
+		stripped = line.strip()
+		if stripped.lower() in {"bash", "sh", "shell", "cmd", "python", "py"}:
+			continue
+		if any(stripped.startswith(prefix) for prefix in non_code_prefixes):
+			continue
+		clean_lines.append(line)
+	return "\n".join(clean_lines).strip()
 
 
 synth_prompt = ChatPromptTemplate.from_messages(
