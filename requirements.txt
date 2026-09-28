@@ -9,7 +9,8 @@ langgraph>=0.2.38
 langgraph-checkpoint-redis>=0.1.0
 
 # Database
-sqlalchemy>=2.0.35
+sqlalchemy[asyncio]>=2.0.35
+greenlet>=3.0.0
 asyncpg>=0.30.0
 aiosqlite>=0.20.0
 alembic>=1.14.0

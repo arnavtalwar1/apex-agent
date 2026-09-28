@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 	TAVILY_API_KEY: Optional[str] = None
 
 	DATABASE_URL: str = "sqlite+aiosqlite:///./apex.db"
-	REDIS_URL: Optional[str] = "redis://localhost:6379"
+	REDIS_URL: Optional[str] = None
 
 	JWT_SECRET_KEY: str = "apex-production-secret-key-replace-with-env"
 	JWT_ALGORITHM: str = "HS256"
