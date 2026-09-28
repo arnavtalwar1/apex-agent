@@ -25,7 +25,14 @@ class Task(Base):
 	user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 	title = Column(String(255))
 	goal = Column(Text, nullable=False)
-	status = Column(Enum(TaskStatus), default=TaskStatus.PENDING)
+	status = Column(
+		Enum(
+			TaskStatus,
+			name="taskstatus",
+			values_callable=lambda x: [e.value for e in x],
+		),
+		default=TaskStatus.PENDING,
+	)
 	plan = Column(Text)
 	current_node = Column(String(50))
 	reflection_count = Column(Integer, default=0)
