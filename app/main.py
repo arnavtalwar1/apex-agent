@@ -54,17 +54,7 @@ else:
         allow_headers=["*"],
     )
 
-hosts = settings.hosts_list
-if "*" in hosts:
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=["*"],
-    )
-else:
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=hosts,
-    )
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.hosts_list)
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")

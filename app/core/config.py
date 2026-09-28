@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -29,12 +30,7 @@ class Settings(BaseSettings):
 
 	@property
 	def async_database_url(self) -> str:
-		url = self.DATABASE_URL
-		if url.startswith("postgres://"):
-			url = url.replace("postgres://", "postgresql+asyncpg://", 1)
-		elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
-			url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
-		return url
+		return re.sub(r"^postgres(ql)?://", "postgresql+asyncpg://", self.DATABASE_URL)
 
 	@property
 	def origins_list(self) -> list[str]:
