@@ -181,10 +181,32 @@ export default function TaskDetailPage() {
     );
   };
 
+  const effectiveDeliverable = useMemo(() => {
+    if (!task) return "";
+    const raw = (task.final_output || "").trim();
+    const isTrivial =
+      !raw ||
+      raw === "SUCCESS:" ||
+      raw === "SUCCESS:\nNo output" ||
+      raw === "SUCCESS: No output" ||
+      raw === "No output" ||
+      raw.startsWith("FAILED (code");
+
+    if (isTrivial && task.plan) {
+      const badge = raw.startsWith("SUCCESS")
+        ? "\n\n---\n✅ **Sandbox Verification:** Execution verified successfully (exit code 0)."
+        : raw.startsWith("FAILED")
+        ? `\n\n---\n### 🧪 Sandbox Verification Note\n\`\`\`\n${raw}\n\`\`\``
+        : "";
+      return `${task.plan}${badge}`;
+    }
+    return task.final_output || "";
+  }, [task]);
+
   const handleCopyOutput = async () => {
-    if (!task?.final_output) return;
+    if (!effectiveDeliverable) return;
     try {
-      await navigator.clipboard.writeText(task.final_output);
+      await navigator.clipboard.writeText(effectiveDeliverable);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
@@ -193,8 +215,8 @@ export default function TaskDetailPage() {
   };
 
   const handleExportMarkdown = () => {
-    if (!task?.final_output) return;
-    const blob = new Blob([task.final_output], { type: "text/markdown;charset=utf-8" });
+    if (!effectiveDeliverable || !task) return;
+    const blob = new Blob([effectiveDeliverable], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -377,7 +399,7 @@ export default function TaskDetailPage() {
             >
               <FileText size={14} />
               <span>Final Deliverable</span>
-              {task.final_output && (
+              {effectiveDeliverable && (
                 <span className="h-2 w-2 rounded-full bg-emerald-400 inline-block" />
               )}
             </button>
@@ -429,7 +451,7 @@ export default function TaskDetailPage() {
           </div>
 
           {/* Quick Actions (when deliverable exists) */}
-          {task.final_output && activeTab === "deliverable" && (
+          {effectiveDeliverable && activeTab === "deliverable" && (
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -483,9 +505,9 @@ export default function TaskDetailPage() {
                 </div>
               </div>
 
-              {task.final_output ? (
+              {effectiveDeliverable ? (
                 <div className="text-slate-200">
-                  <MarkdownRenderer content={task.final_output} />
+                  <MarkdownRenderer content={effectiveDeliverable} />
                 </div>
               ) : (
                 <div className="py-16 text-center text-slate-400 flex flex-col items-center">

@@ -38,7 +38,7 @@ Error: {error}""",
 
 
 def supervisor_node(state: AgentState) -> AgentState:
-	model = get_llm(temperature=0, max_tokens=256)
+	model = get_llm(temperature=0, max_tokens=16)
 	response = (prompt | model).invoke(
 		{
 			"user_goal": state.get("user_goal", ""),
