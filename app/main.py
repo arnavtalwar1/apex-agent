@@ -66,6 +66,12 @@ async def root() -> dict[str, str]:
     return {"message": f"Welcome to {settings.APP_NAME}"}
 
 
+@app.get("/api/v1")
+@app.get("/api/v1/")
+async def api_v1_root() -> dict[str, str]:
+    return {"message": f"{settings.APP_NAME} API v1", "status": "online", "docs": "/docs"}
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "healthy"}
