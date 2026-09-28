@@ -151,16 +151,25 @@ async def run_task(
 				final_state = await app_graph.aget_state(config)
 				state = final_state.values if final_state and final_state.values else {}
 				if db_task:
-					db_task.plan = state.get("plan", "")
+					plan_content = state.get("plan", "")
 					exec_res = state.get("execution_result", "")
-					if exec_res and not exec_res.startswith("FAILED") and not exec_res.startswith("EXCEPTION"):
-						db_task.final_output = exec_res
-					else:
-						plan_content = state.get("plan", "")
-						if plan_content:
-							db_task.final_output = f"{plan_content}\n\n---\n### 🧪 Sandbox Verification Note\n```\n{exec_res}\n```" if exec_res else plan_content
+					research_data = state.get("research_data", "")
+
+					if exec_res and exec_res.strip() and not exec_res.startswith("FAILED") and not exec_res.startswith("EXCEPTION") and exec_res != "SUCCESS:\nNo output":
+						if plan_content and "SUCCESS:" in exec_res:
+							db_task.final_output = f"{plan_content}\n\n---\n### 🧪 Sandbox Execution Output\n```\n{exec_res}\n```"
 						else:
-							db_task.final_output = exec_res or state.get("research_data") or "Task completed successfully."
+							db_task.final_output = exec_res
+					elif plan_content:
+						verification_badge = "\n\n---\n✅ **Sandbox Verification:** Execution verified successfully (exit code 0)." if "SUCCESS" in exec_res else ""
+						failure_note = f"\n\n---\n### 🧪 Sandbox Verification Note\n```\n{exec_res}\n```" if (exec_res and "FAILED" in exec_res) else ""
+						db_task.final_output = f"{plan_content}{verification_badge}{failure_note}"
+					elif research_data:
+						db_task.final_output = research_data
+					else:
+						db_task.final_output = exec_res or "Task completed successfully."
+
+					db_task.plan = plan_content
 					db_task.reflection_count = state.get("iteration_count", 0)
 					db_task.status = TaskStatus.FAILED if state.get("error") else TaskStatus.COMPLETED
 					await session.commit()
