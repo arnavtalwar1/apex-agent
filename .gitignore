@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.db
+*.log
+tests/*_results.json
+node_modules/
+.next/
+frontend/node_modules/
+frontend/.next/
+

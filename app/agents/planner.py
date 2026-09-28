@@ -1,0 +1,29 @@
+from langchain_core.prompts import ChatPromptTemplate
+
+from app.core.llm import get_llm
+from app.graph.state import AgentState
+
+
+prompt = ChatPromptTemplate.from_messages(
+	[
+		(
+			"system",
+			"""You are a planner. Break the user's goal into a clear, step-by-step actionable plan.
+Output a numbered list with a clear action, required tools, and expected outcome for each step.
+Be specific and practical. If code execution, computation, or verification is needed, include a self-contained, executable Python code snippet inside a ```python ``` code block.""",
+		),
+		("human", "Goal: {user_goal}\nAdditional context: {research_data}"),
+	]
+)
+
+
+def planner_node(state: AgentState) -> AgentState:
+	model = get_llm(temperature=0.2, max_tokens=1024)
+	response = (prompt | model).invoke(
+		{
+			"user_goal": state.get("user_goal", ""),
+			"research_data": state.get("research_data", ""),
+		}
+	)
+	state["plan"] = response.content
+	return state
