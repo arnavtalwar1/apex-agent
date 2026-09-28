@@ -186,10 +186,10 @@ export default function TaskDetailPage() {
     const raw = (task.final_output || "").trim();
     const isTrivial =
       !raw ||
+      raw.toLowerCase().includes("no output") ||
       raw === "SUCCESS:" ||
-      raw === "SUCCESS:\nNo output" ||
-      raw === "SUCCESS: No output" ||
-      raw === "No output" ||
+      raw === "SUCCESS" ||
+      (raw.startsWith("SUCCESS:") && raw.length < 50) ||
       raw.startsWith("FAILED (code");
 
     if (isTrivial && task.plan) {

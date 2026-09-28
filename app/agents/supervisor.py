@@ -38,6 +38,12 @@ Error: {error}""",
 
 
 def supervisor_node(state: AgentState) -> AgentState:
+	# If execution already succeeded without errors, immediately terminate without looping
+	exec_res = state.get("execution_result", "")
+	if exec_res and not state.get("error"):
+		state["next_node"] = "FINISH"
+		return state
+
 	model = get_llm(temperature=0, max_tokens=16)
 	response = (prompt | model).invoke(
 		{
@@ -63,4 +69,13 @@ def supervisor_node(state: AgentState) -> AgentState:
 		state["next_node"] = "EXECUTOR"
 	else:
 		state["next_node"] = "FINISH"
+
+	# Guard: Never re-run planner if plan already formulated unless in reflection
+	if state["next_node"] == "PLANNER" and state.get("plan") and not state.get("reflection_critique"):
+		state["next_node"] = "RESEARCHER" if not state.get("research_data") else "EXECUTOR"
+
+	# Guard: Never re-run executor if execution already completed without error
+	if state["next_node"] == "EXECUTOR" and state.get("execution_result") and not state.get("error"):
+		state["next_node"] = "FINISH"
+
 	return state
