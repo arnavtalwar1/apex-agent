@@ -24,7 +24,7 @@ Code snippets must run autonomously in an isolated sandbox:
 
 
 def planner_node(state: AgentState) -> dict[str, Any]:
-	model = get_llm(tier="fast", temperature=0.2, max_tokens=512)
+	model = get_llm(tier="fast", temperature=0.0, max_tokens=512)
 	response = (prompt | model).invoke(
 		{
 			"user_goal": state.get("user_goal", ""),

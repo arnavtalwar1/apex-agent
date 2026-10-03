@@ -31,7 +31,7 @@ Use this format:
 
 
 def reflector_node(state: AgentState) -> dict[str, Any]:
-	model = get_llm(tier="fast", temperature=0.2, max_tokens=384)
+	model = get_llm(tier="fast", temperature=0.0, max_tokens=384)
 	response = (prompt | model).invoke(
 		{
 			"user_goal": state.get("user_goal", ""),

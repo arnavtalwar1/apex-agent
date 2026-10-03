@@ -75,8 +75,9 @@ Structure your deliverable with clear sections:
 - High-priority action items, best practices, and next steps.
 
 Guidelines:
-- Incorporate empirical insights from the sandbox runtime execution output and web research intelligence.
-- Format with rich Markdown: bold metrics, clean bulleted lists, and structured tables where helpful.
+- Strict Grounding: Anchor all architecture details, schema breakdowns, and findings strictly in the provided Web Intelligence, Strategic Plan, and Sandbox Runtime Output. Do not invent files, schemas, or metrics.
+- Distinguish empirical runtime data (from sandbox stdout) from contextual domain deductions.
+- Format with rich Markdown: bold key metrics, clean bulleted lists, and structured tables where helpful.
 - Be authoritative, specific, and direct. Avoid conversational filler, meta-announcements, or apologies.""",
 		),
 		(
@@ -105,7 +106,7 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 	if not code:
 		if research_data:
 			try:
-				model = get_llm(tier="fast", temperature=0.2, max_tokens=512)
+				model = get_llm(tier="fast", temperature=0.1, max_tokens=512)
 				synthesis = (synth_prompt | model).invoke(
 					{
 						"user_goal": user_goal,
@@ -141,7 +142,7 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 	sandbox_stdout = (res.stdout or "").strip() or "Execution completed successfully with exit code 0."
 
 	try:
-		model = get_llm(tier="fast", temperature=0.2, max_tokens=768)
+		model = get_llm(tier="fast", temperature=0.1, max_tokens=768)
 		synthesis = (synth_prompt | model).invoke(
 			{
 				"user_goal": user_goal,
