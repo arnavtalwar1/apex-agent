@@ -1,11 +1,13 @@
 export type TaskStatus =
   | "pending"
+  | "awaiting_approval"
   | "planning"
   | "researching"
   | "executing"
   | "reflecting"
   | "completed"
-  | "failed";
+  | "failed"
+  | "rejected";
 
 export interface Task {
   id: number;
@@ -17,6 +19,10 @@ export interface Task {
   current_node: string | null;
   reflection_count: number;
   final_output: string | null;
+  requires_approval?: boolean;
+  approval_status?: string;
+  token_cost?: number;
+  trace_id?: string;
   created_at: string;
   updated_at?: string;
 }
@@ -31,6 +37,7 @@ export interface User {
 
 export interface AuthResponse {
   access_token: string;
+  refresh_token?: string;
   token_type: string;
 }
 

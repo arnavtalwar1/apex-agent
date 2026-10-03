@@ -1,7 +1,6 @@
 import enum
 
-# pyrefly: ignore [missing-import]
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -10,12 +9,14 @@ from app.core.database import Base
 
 class TaskStatus(str, enum.Enum):
 	PENDING = "pending"
+	AWAITING_APPROVAL = "awaiting_approval"
 	PLANNING = "planning"
 	RESEARCHING = "researching"
 	EXECUTING = "executing"
 	REFLECTING = "reflecting"
 	COMPLETED = "completed"
 	FAILED = "failed"
+	REJECTED = "rejected"
 
 
 class Task(Base):
@@ -37,6 +38,10 @@ class Task(Base):
 	current_node = Column(String(50))
 	reflection_count = Column(Integer, default=0)
 	final_output = Column(Text)
+	requires_approval = Column(Boolean, default=False)
+	approval_status = Column(String(50), default="none")
+	token_cost = Column(Float, default=0.0)
+	trace_id = Column(String(64), nullable=True)
 	created_at = Column(DateTime(timezone=True), server_default=func.now())
 	updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

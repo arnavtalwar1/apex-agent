@@ -20,6 +20,17 @@ class Settings(BaseSettings):
 	JWT_SECRET_KEY: str = "apex-production-secret-key-replace-with-env"
 	JWT_ALGORITHM: str = "HS256"
 	JWT_EXPIRE_MINUTES: int = 60
+	JWT_REFRESH_EXPIRE_DAYS: int = 7
+
+	# Sandbox & Security
+	SECURE_SANDBOX_ENABLED: bool = True
+	MAX_CODE_TIMEOUT_SECONDS: int = 30
+	MAX_CODE_OUTPUT_CHARS: int = 25000
+	REQUIRE_APPROVAL_FOR_CODE_EXECUTION: bool = False
+
+	# Governance, Cost limits & Observability
+	MAX_COST_PER_TASK_USD: float = 0.50
+	ENABLE_OBSERVABILITY_TRACING: bool = True
 
 	MAX_ITERATIONS: int = 5
 	MAX_TOKENS: int = 2048

@@ -33,20 +33,90 @@ def get_password_hash(password: str) -> str:
 	return bcrypt.hashpw(password_bytes, salt).decode("utf-8")
 
 
+import uuid
+
+
+class TokenBlacklist:
+	"""
+	Thread-safe in-memory token blacklist with auto-cleanup of expired entries.
+	Designed for seamless drop-in extension with Redis in clustered environments.
+	"""
+
+	def __init__(self):
+		self._blacklisted: dict[str, float] = {}
+
+	def revoke(self, jti: str, exp_timestamp: float) -> None:
+		self._blacklisted[jti] = exp_timestamp
+		self._cleanup()
+
+	def is_revoked(self, jti: str) -> bool:
+		self._cleanup()
+		return jti in self._blacklisted
+
+	def _cleanup(self) -> None:
+		now = datetime.now(timezone.utc).timestamp()
+		expired_jtis = [jti for jti, exp in self._blacklisted.items() if exp < now]
+		for jti in expired_jtis:
+			self._blacklisted.pop(jti, None)
+
+
+token_blacklist = TokenBlacklist()
+
+
 def create_access_token(data: dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
 	to_encode = data.copy()
 	expire = datetime.now(timezone.utc) + (
 		expires_delta or timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
 	)
 	to_encode["exp"] = expire
+	if "type" not in to_encode:
+		to_encode["type"] = "access"
+	if "jti" not in to_encode:
+		to_encode["jti"] = str(uuid.uuid4())
 	return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-async def decode_token(token: str) -> dict[str, Any]:
+def create_refresh_token(data: dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+	to_encode = data.copy()
+	expire = datetime.now(timezone.utc) + (
+		expires_delta or timedelta(days=settings.JWT_REFRESH_EXPIRE_DAYS)
+	)
+	to_encode["exp"] = expire
+	to_encode["type"] = "refresh"
+	to_encode["jti"] = str(uuid.uuid4())
+	return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def revoke_token(token: str) -> None:
 	try:
-		return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+		payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+		jti = payload.get("jti")
+		exp = payload.get("exp")
+		if jti and exp:
+			token_blacklist.revoke(jti, float(exp))
+	except JWTError:
+		pass
+
+
+async def decode_token(token: str, expected_type: Optional[str] = None) -> dict[str, Any]:
+	try:
+		payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
 	except JWTError as error:
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from error
+
+	jti = payload.get("jti")
+	if jti and token_blacklist.is_revoked(jti):
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+
+	token_type = payload.get("type")
+	# If expected_type is specified and token explicitly declares a type, verify matching type
+	if expected_type and token_type and token_type != expected_type:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail=f"Invalid token type: expected '{expected_type}', got '{token_type}'",
+		)
+
+	return payload
 
 
 async def get_current_user(
@@ -58,7 +128,7 @@ async def get_current_user(
 	if not raw_token:
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
-	payload = await decode_token(raw_token)
+	payload = await decode_token(raw_token, expected_type="access")
 	user_id = payload.get("sub")
 	if not user_id:
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user ID")

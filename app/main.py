@@ -79,11 +79,29 @@ async def health() -> dict[str, str]:
     return {"status": "healthy"}
 
 
+from app.core.errors import ApexException
+
+
+@app.exception_handler(ApexException)
+async def apex_exception_handler(_: Request, exc: ApexException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error_code": exc.error_code,
+            "detail": exc.message,
+            "details": exc.details,
+        },
+    )
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     error_trace = traceback.format_exc()
     print(f"Server error on {request.url}: {error_trace}")
+    content: dict = {"detail": str(exc)}
+    if settings.DEBUG:
+        content["trace"] = error_trace.splitlines()[-3:] if error_trace else []
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc), "trace": error_trace.splitlines()[-3:] if error_trace else []},
+        content=content,
     )

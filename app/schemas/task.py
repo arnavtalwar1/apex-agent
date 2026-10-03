@@ -7,6 +7,7 @@ class TaskCreate(BaseModel):
 	goal: str
 	title: str | None = None
 	max_iterations: int = 5
+	requires_approval: bool = False
 
 
 class TaskResponse(BaseModel):
@@ -20,4 +21,8 @@ class TaskResponse(BaseModel):
 	current_node: str | None
 	reflection_count: int
 	final_output: str | None
+	requires_approval: bool = False
+	approval_status: str = "none"
+	token_cost: float = 0.0
+	trace_id: str | None = None
 	created_at: datetime

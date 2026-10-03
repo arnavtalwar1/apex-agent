@@ -1,16 +1,31 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.core.security import (
 	create_access_token,
+	create_refresh_token,
+	decode_token,
 	get_current_user,
 	get_password_hash,
+	revoke_token,
+	security,
 	verify_password,
 )
 from app.models.user import User
-from app.schemas.auth import TokenResponse, UserLogin, UserRegister, UserResponse
+from app.schemas.auth import (
+	MessageResponse,
+	RefreshTokenRequest,
+	TokenResponse,
+	UserLogin,
+	UserRegister,
+	UserResponse,
+)
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -40,7 +55,43 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)) -> Tok
 	if not user or not verify_password(user_data.password, user.hashed_password):
 		raise HTTPException(status_code=401, detail="Invalid credentials")
 
-	return TokenResponse(access_token=create_access_token({"sub": str(user.id), "email": user.email}))
+	user_claims = {"sub": str(user.id), "email": user.email}
+	access_token = create_access_token(user_claims)
+	refresh_token = create_refresh_token(user_claims)
+	return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_access_token(
+	body: RefreshTokenRequest,
+	db: AsyncSession = Depends(get_db),
+) -> TokenResponse:
+	payload = await decode_token(body.refresh_token, expected_type="refresh")
+	user_id = payload.get("sub")
+	if not user_id:
+		raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+	result = await db.execute(select(User).where(User.id == int(user_id)))
+	user = result.scalar_one_or_none()
+	if not user or not user.is_active:
+		raise HTTPException(status_code=401, detail="User account is inactive or not found")
+
+	# Rotate refresh token to prevent replay attacks
+	revoke_token(body.refresh_token)
+	user_claims = {"sub": str(user.id), "email": user.email}
+	new_access = create_access_token(user_claims)
+	new_refresh = create_refresh_token(user_claims)
+	return TokenResponse(access_token=new_access, refresh_token=new_refresh)
+
+
+@router.post("/logout", response_model=MessageResponse)
+async def logout(
+	credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+	current_user: User = Depends(get_current_user),
+) -> MessageResponse:
+	if credentials and credentials.credentials:
+		revoke_token(credentials.credentials)
+	return MessageResponse(detail="Successfully logged out and session revoked")
 
 
 @router.get("/me", response_model=UserResponse)

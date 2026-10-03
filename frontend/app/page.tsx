@@ -116,10 +116,10 @@ export default function DashboardPage() {
   const totalReflections = tasks.reduce((acc, t) => acc + (t.reflection_count || 0), 0);
 
   return (
-    <div className="min-h-screen pt-28 pb-16 px-4 sm:px-6">
+    <div className="min-h-screen pb-16">
       <Navbar />
 
-      <main className="max-w-6xl mx-auto">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
         {/* Hero & Bento Metric Grid */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}

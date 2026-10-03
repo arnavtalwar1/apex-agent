@@ -88,6 +88,9 @@ export const api = {
     const result = await handleJsonResponse<AuthResponse>(response);
     if (result.access_token && typeof window !== "undefined") {
       localStorage.setItem("access_token", result.access_token);
+      if (result.refresh_token) {
+        localStorage.setItem("refresh_token", result.refresh_token);
+      }
     }
     return result;
   },
@@ -140,6 +143,30 @@ export const api = {
       headers: authHeaders(true),
     });
     return handleJsonResponse<{ detail: string }>(response);
+  },
+
+  approveTask: async (id: number): Promise<Task> => {
+    const response = await fetch(`${getApiBase()}/tasks/${id}/approve`, {
+      method: "POST",
+      headers: authHeaders(true),
+    });
+    return handleJsonResponse<Task>(response);
+  },
+
+  rejectTask: async (id: number): Promise<Task> => {
+    const response = await fetch(`${getApiBase()}/tasks/${id}/reject`, {
+      method: "POST",
+      headers: authHeaders(true),
+    });
+    return handleJsonResponse<Task>(response);
+  },
+
+  runTaskBackground: async (id: number): Promise<{ task_id: number; status: string; mode: string }> => {
+    const response = await fetch(`${getApiBase()}/tasks/${id}/run-background`, {
+      method: "POST",
+      headers: authHeaders(true),
+    });
+    return handleJsonResponse<{ task_id: number; status: string; mode: string }>(response);
   },
 
   /**
@@ -225,9 +252,38 @@ export const api = {
     };
   },
 
-  logout: () => {
+  refreshToken: async (): Promise<AuthResponse> => {
+    const refresh_token = typeof window !== "undefined" ? localStorage.getItem("refresh_token") : null;
+    if (!refresh_token) {
+      throw new Error("No refresh token available");
+    }
+    const response = await fetch(`${getApiBase()}/auth/refresh`, {
+      method: "POST",
+      headers: authHeaders(false),
+      body: JSON.stringify({ refresh_token }),
+    });
+    const result = await handleJsonResponse<AuthResponse>(response);
+    if (result.access_token && typeof window !== "undefined") {
+      localStorage.setItem("access_token", result.access_token);
+      if (result.refresh_token) {
+        localStorage.setItem("refresh_token", result.refresh_token);
+      }
+    }
+    return result;
+  },
+
+  logout: async () => {
     if (typeof window !== "undefined") {
+      try {
+        await fetch(`${getApiBase()}/auth/logout`, {
+          method: "POST",
+          headers: authHeaders(true),
+        });
+      } catch {
+        // Silently continue local cleanup if network fails
+      }
       localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/login";
     }

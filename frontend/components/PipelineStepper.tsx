@@ -8,7 +8,8 @@ import {
   Terminal, 
   RotateCcw, 
   CheckCircle2, 
-  Loader2 
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -98,6 +99,7 @@ export default function PipelineStepper({
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3 relative">
         {NODES.map((node, index) => {
           const Icon = node.icon;
+          const isNodeFailed = isFailed && (activeNodeId === node.id || (activeIndex === -1 && index === 0));
           const isActive = activeNodeId === node.id && !isCompleted && !isFailed;
           const isPassed = isCompleted || (activeIndex > -1 && index < activeIndex);
 
@@ -108,7 +110,9 @@ export default function PipelineStepper({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.08 }}
               className={`relative flex flex-col items-center text-center p-4 rounded-xl border transition-all ${
-                isActive
+                isNodeFailed
+                  ? "border-rose-500/50 bg-rose-950/20 shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30 text-rose-300"
+                  : isActive
                   ? "border-indigo-400/80 bg-indigo-950/30 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-400/50"
                   : isPassed
                   ? "border-emerald-500/30 bg-emerald-950/10 text-slate-300"
@@ -118,14 +122,18 @@ export default function PipelineStepper({
               {/* Node Icon Box */}
               <div
                 className={`relative mb-3 flex h-12 w-12 items-center justify-center rounded-xl transition-transform ${
-                  isActive
+                  isNodeFailed
+                    ? "bg-rose-500/20 text-rose-400 border border-rose-500/40 scale-105"
+                    : isActive
                     ? "bg-gradient-to-br " + node.color + " text-white shadow-md shadow-indigo-500/30 scale-105"
                     : isPassed
                     ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
                     : "bg-slate-800/80 text-slate-400 border border-white/5"
                 }`}
               >
-                {isActive ? (
+                {isNodeFailed ? (
+                  <AlertCircle size={22} className="text-rose-400" />
+                ) : isActive ? (
                   <Loader2 size={22} className="animate-spin" />
                 ) : isPassed ? (
                   <CheckCircle2 size={22} className="text-emerald-400" />
@@ -141,6 +149,12 @@ export default function PipelineStepper({
               <div className="text-[11px] text-slate-400 mt-1 line-clamp-1">
                 {node.desc}
               </div>
+
+              {isNodeFailed && (
+                <span className="mt-2 text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                  FAILED
+                </span>
+              )}
 
               {isActive && (
                 <span className="mt-2 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 animate-pulse">

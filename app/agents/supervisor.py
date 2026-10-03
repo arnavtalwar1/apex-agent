@@ -1,6 +1,8 @@
 from langchain_core.prompts import ChatPromptTemplate
 
+from app.core.config import settings
 from app.core.llm import get_llm
+from app.core.structured_llm import parse_supervisor_decision
 from app.graph.state import AgentState
 
 
@@ -38,9 +40,22 @@ Error: {error}""",
 
 
 def supervisor_node(state: AgentState) -> AgentState:
-	# If execution already succeeded without errors, immediately terminate without looping
 	exec_res = state.get("execution_result", "")
-	if exec_res and not state.get("error"):
+	error = state.get("error", "")
+	iteration_count = state.get("iteration_count", 0)
+
+	# 1. Deterministic guard: If execution already succeeded without errors, immediately terminate without looping
+	if exec_res and not error:
+		state["next_node"] = "FINISH"
+		return state
+
+	# 2. Deterministic guard: If execution failed with an unaddressed error, route to REFLECTOR
+	if error and iteration_count < settings.MAX_ITERATIONS:
+		state["next_node"] = "REFLECTOR"
+		return state
+
+	# 3. Deterministic guard: If iteration count reached max iterations, terminate
+	if iteration_count >= settings.MAX_ITERATIONS:
 		state["next_node"] = "FINISH"
 		return state
 
@@ -56,11 +71,9 @@ def supervisor_node(state: AgentState) -> AgentState:
 			"error": state.get("error", ""),
 		}
 	)
-	cleaned = response.content.strip().upper().replace("*", "").replace(".", "")
-	valid = {"PLANNER", "RESEARCHER", "EXECUTOR", "REFLECTOR", "FINISH"}
-	words = [w for w in cleaned.split() if w in valid]
-	if words:
-		state["next_node"] = words[0]
+	decision = parse_supervisor_decision(response)
+	if decision.next_agent in {"PLANNER", "RESEARCHER", "EXECUTOR", "REFLECTOR", "FINISH"}:
+		state["next_node"] = decision.next_agent
 	elif not state.get("plan"):
 		state["next_node"] = "PLANNER"
 	elif not state.get("research_data"):

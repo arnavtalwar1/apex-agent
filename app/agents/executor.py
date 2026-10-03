@@ -6,7 +6,9 @@ import tempfile
 
 from langchain_core.prompts import ChatPromptTemplate
 
+from app.core.config import settings
 from app.core.llm import get_llm
+from app.core.sandbox import SecureSandbox
 from app.graph.state import AgentState
 
 
@@ -92,44 +94,18 @@ def executor_node(state: AgentState) -> AgentState:
 		state["error"] = ""
 		return state
 
-	tmp_path = ""
-	try:
-		with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as file:
-			file.write(code)
-			tmp_path = file.name
+	sandbox = SecureSandbox(
+		timeout_seconds=settings.MAX_CODE_TIMEOUT_SECONDS,
+		max_output_chars=settings.MAX_CODE_OUTPUT_CHARS,
+		enable_ast_check=settings.SECURE_SANDBOX_ENABLED,
+	)
+	res = sandbox.execute(code)
 
-		environment = {
-			key: value
-			for key, value in os.environ.items()
-			if key not in {"OPENAI_API_KEY", "TAVILY_API_KEY"}
-		}
-		environment["PYTHONIOENCODING"] = "utf-8"
-		result = subprocess.run(
-			[sys.executable, tmp_path],
-			capture_output=True,
-			text=True,
-			encoding="utf-8",
-			errors="replace",
-			timeout=30,
-			env=environment,
-			check=False,
-		)
-		if result.returncode == 0:
-			state["execution_result"] = f"SUCCESS:\n{result.stdout or 'No output'}"
-			state["error"] = ""
-		else:
-			state["execution_result"] = f"FAILED (code {result.returncode}):\n{result.stderr}"
-			state["error"] = result.stderr
-	except subprocess.TimeoutExpired:
-		state["execution_result"] = "TIMEOUT: Execution exceeded 30 seconds"
-		state["error"] = "Timeout"
-	except Exception as error:
-		state["execution_result"] = f"EXCEPTION: {error}"
-		state["error"] = str(error)
-	finally:
-		if tmp_path:
-			try:
-				os.unlink(tmp_path)
-			except OSError:
-				pass
+	if res.success:
+		state["execution_result"] = f"SUCCESS:\n{res.stdout or 'No output'}"
+		state["error"] = ""
+	else:
+		state["execution_result"] = f"FAILED (code {res.exit_code}):\n{res.stderr}"
+		state["error"] = res.stderr
+
 	return state

@@ -25,6 +25,7 @@ import {
   Trash2,
   Filter,
   ArrowDownCircle,
+  AlertCircle,
 } from "lucide-react";
 
 export default function TaskDetailPage() {
@@ -274,9 +275,9 @@ export default function TaskDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-28 pb-16 px-6">
+      <div className="min-h-screen pb-16">
         <Navbar />
-        <main className="max-w-6xl mx-auto text-center flex flex-col items-center justify-center pt-24 text-slate-400">
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center justify-center pt-24 text-slate-400">
           <RotateCcw size={40} className="animate-spin mb-4 text-indigo-400" />
           <p className="font-semibold text-slate-300">Synchronizing Cognitive State...</p>
         </main>
@@ -286,9 +287,9 @@ export default function TaskDetailPage() {
 
   if (!task) {
     return (
-      <div className="min-h-screen pt-28 pb-16 px-6">
+      <div className="min-h-screen pb-16">
         <Navbar />
-        <main className="max-w-6xl mx-auto text-center pt-20">
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 text-center pt-20">
           <p className="text-xl font-bold text-white mb-4">Task not found</p>
           <Link
             href="/"
@@ -302,10 +303,10 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6">
+    <div className="min-h-screen pb-20">
       <Navbar />
 
-      <main className="max-w-6xl mx-auto">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
         {/* Breadcrumb Navigation */}
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <Link
@@ -491,19 +492,43 @@ export default function TaskDetailPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="rounded-3xl border border-emerald-500/20 bg-[#0d1628]/90 backdrop-blur-xl p-8 shadow-2xl relative"
+              className={`rounded-3xl border bg-[#0d1628]/90 backdrop-blur-xl p-8 shadow-2xl relative ${
+                task.status === "failed" ? "border-rose-500/25" : "border-emerald-500/20"
+              }`}
             >
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <CheckCircle2 size={22} />
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
+                    task.status === "failed"
+                      ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                      : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                  }`}
+                >
+                  {task.status === "failed" ? <AlertCircle size={22} /> : <CheckCircle2 size={22} />}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Executive Deliverable & Output</h2>
+                  <h2 className="text-lg font-bold text-white">
+                    {task.status === "failed" ? "Execution Deliverable (Verification Alert)" : "Executive Deliverable & Output"}
+                  </h2>
                   <p className="text-xs text-slate-400">
-                    Compiled and verified by the APEX multi-agent execution pipeline
+                    {task.status === "failed"
+                      ? "Execution encountered an error. Click 'Re-Run Pipeline' above to trigger self-healing automated execution."
+                      : "Compiled and verified by the APEX multi-agent execution pipeline"}
                   </p>
                 </div>
               </div>
+
+              {task.status === "failed" && (
+                <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-950/30 p-4 text-xs text-rose-300 flex items-start gap-3">
+                  <AlertCircle size={18} className="shrink-0 text-rose-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-bold text-rose-200">Execution Notice</p>
+                    <p className="mt-1 text-slate-300 leading-relaxed">
+                      Sandbox execution returned an error during this run. Click the <span className="font-semibold text-white">Re-Run Pipeline</span> button above to trigger the self-healing reflection loop and verify code execution.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {effectiveDeliverable ? (
                 <div className="text-slate-200">

@@ -35,6 +35,15 @@ const STATUS_CONFIG: Record<string, StyleConfig> = {
     dot: "bg-rose-400",
     ping: true,
   },
+  awaiting_approval: {
+    badge: "bg-amber-950/60 text-amber-300 border-amber-500/60 shadow-sm shadow-amber-500/20",
+    dot: "bg-amber-400",
+    ping: true,
+  },
+  rejected: {
+    badge: "bg-zinc-900 text-zinc-400 border-zinc-700/60",
+    dot: "bg-zinc-500",
+  },
   completed: {
     badge: "bg-emerald-950/40 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-500/10",
     dot: "bg-emerald-400",
