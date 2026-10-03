@@ -84,6 +84,86 @@ Sandbox Runtime Output:
 )
 
 
+def virtualize_file_io(code: str, force: bool = False) -> str:
+	"""
+	Transforms code containing open() calls into safe in-memory virtual file operations.
+	Prevents sandbox security policy violation while safely supporting file simulations.
+	"""
+	if not force and not re.search(r"\bopen\s*\(", code):
+		return code
+
+	virtual_shim = """import io as _apex_io
+
+_apex_virtual_fs = {}
+
+class _ApexVirtualFile:
+    def __init__(self, filename, mode="r", *args, **kwargs):
+        self.filename = str(filename)
+        self.mode = mode
+        if "b" in mode:
+            raw = _apex_virtual_fs.get(self.filename, b"")
+            if isinstance(raw, str):
+                raw = raw.encode("utf-8")
+            initial = raw if ("a" in mode or "r" in mode) else b""
+            self._stream = _apex_io.BytesIO(initial)
+            if "a" in mode:
+                self._stream.seek(0, _apex_io.SEEK_END)
+        else:
+            raw = _apex_virtual_fs.get(self.filename, "")
+            if isinstance(raw, bytes):
+                raw = raw.decode("utf-8", errors="replace")
+            initial = raw if ("a" in mode or "r" in mode) else ""
+            self._stream = _apex_io.StringIO(initial)
+            if "a" in mode:
+                self._stream.seek(0, _apex_io.SEEK_END)
+
+    def write(self, s):
+        res = self._stream.write(s)
+        _apex_virtual_fs[self.filename] = self._stream.getvalue()
+        return res
+
+    def read(self, *args):
+        return self._stream.read(*args)
+
+    def readline(self, *args):
+        return self._stream.readline(*args)
+
+    def readlines(self, *args):
+        return self._stream.readlines(*args)
+
+    def seek(self, *args):
+        return self._stream.seek(*args)
+
+    def tell(self):
+        return self._stream.tell()
+
+    def flush(self):
+        if hasattr(self, "_stream") and not self._stream.closed:
+            if "w" in self.mode or "a" in self.mode:
+                _apex_virtual_fs[self.filename] = self._stream.getvalue()
+
+    def close(self):
+        if hasattr(self, "_stream") and not self._stream.closed:
+            if "w" in self.mode or "a" in self.mode:
+                _apex_virtual_fs[self.filename] = self._stream.getvalue()
+            self._stream.close()
+
+    def __iter__(self):
+        return iter(self._stream)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+def _apex_safe_open(filename, mode="r", *args, **kwargs):
+    return _ApexVirtualFile(filename, mode, *args, **kwargs)
+"""
+	transformed = re.sub(r"\bopen\s*\(", "_apex_safe_open(", code)
+	return virtual_shim + "\n" + transformed
+
+
 def executor_node(state: AgentState) -> dict[str, Any]:
 	plan_text = state.get("plan", "")
 	code = extract_code(plan_text)
@@ -93,12 +173,20 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 	if not code:
 		return synthesize_answer(state, "No code execution required.")
 
+	# Prepare code: virtualize open() calls to safe in-memory file I/O
+	run_code = virtualize_file_io(code)
+
 	sandbox = SecureSandbox(
 		timeout_seconds=min(settings.MAX_CODE_TIMEOUT_SECONDS, 8),
 		max_output_chars=settings.MAX_CODE_OUTPUT_CHARS,
 		enable_ast_check=settings.SECURE_SANDBOX_ENABLED,
 	)
-	res = sandbox.execute(code)
+	res = sandbox.execute(run_code)
+
+	# If initial execution failed due to an open() violation, retry with forced virtualization
+	if not res.success and "open()" in res.stderr and run_code == code:
+		run_code = virtualize_file_io(code, force=True)
+		res = sandbox.execute(run_code)
 
 	if not res.success:
 		exec_res = f"FAILED (code {res.exit_code}):\n{res.stderr}"

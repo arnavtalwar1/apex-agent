@@ -16,7 +16,7 @@ prompt = ChatPromptTemplate.from_messages(
 Be direct, structured, and concise. Do not include conversational filler, preamble, or apologies.
 If execution failed:
 1. Identify the exact root cause of the error.
-2. Fix the Python code snippet in the plan: make it robust, self-contained, and runnable in an automated sandbox (no sys/os/subprocess imports, omit unneeded auth headers, add exception handling).
+2. Fix the Python code snippet in the plan: make it robust, self-contained, and runnable in an automated sandbox (no sys/os/subprocess imports, avoid prohibited built-in functions like open()/eval()/exec(), compute in-memory, omit unneeded auth headers, add exception handling).
 3. Provide a clear CRITIQUE and the complete CORRECTED_PLAN.
 
 Use this format:

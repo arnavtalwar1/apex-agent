@@ -19,7 +19,8 @@ If computation, data modeling, or metric verification is needed, include an exec
 Code snippets must run autonomously in the sandbox:
 - Write 100% self-contained Python computation code using standard libraries (math, json, datetime, re, random, collections, itertools, statistics).
 - For repository or dataset analytics: DO NOT make external HTTP or network requests in the script. Use only actual data provided by the user or research context. Never fabricate representative repository files, datasets, or metrics. If the evidence is missing, plan to explain that limitation instead of computing invented numbers.
-- Do not import restricted system modules like sys, os, subprocess, shutil, or socket.""",
+- Do not import restricted system modules like sys, os, subprocess, shutil, or socket.
+- Do not call prohibited built-in functions: open(), input(), eval(), exec(), compile(). Use in-memory variables and standard print() output instead of filesystem operations.""",
 		),
 		("human", "Goal: {user_goal}\nAdditional context / Ground Truth:\n{research_data}"),
 	]

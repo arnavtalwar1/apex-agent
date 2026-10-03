@@ -86,3 +86,37 @@ def test_researcher_includes_citations():
     with patch("app.agents.researcher.search_web", return_value=results):
         res = researcher_node(state)
     assert "Source: https://fastapi.tiangolo.com" in res["research_data"]
+
+
+def test_virtualize_file_io_transforms_open_and_runs_safely():
+    from app.agents.executor import virtualize_file_io
+    from app.core.sandbox import SecureSandbox, analyze_code_security
+
+    code = """
+with open("data.txt", "w") as f:
+    f.write("APEX Autonomous Intelligence")
+with open("data.txt", "r") as f:
+    val = f.read()
+print("RESULT:", val)
+"""
+    transformed = virtualize_file_io(code)
+    assert "_apex_safe_open" in transformed
+
+    # Verify transformed code passes AST static security checks
+    is_safe, violations = analyze_code_security(transformed)
+    assert is_safe is True
+    assert len(violations) == 0
+
+    # Verify it executes cleanly in sandbox
+    sandbox = SecureSandbox(timeout_seconds=5)
+    res = sandbox.execute(transformed)
+    assert res.success is True
+    assert res.exit_code == 0
+    assert "RESULT: APEX Autonomous Intelligence" in res.stdout
+
+
+def test_virtualize_file_io_preserves_code_without_open():
+    from app.agents.executor import virtualize_file_io
+
+    code = "import math\nprint(math.sqrt(16))"
+    assert virtualize_file_io(code) == code
