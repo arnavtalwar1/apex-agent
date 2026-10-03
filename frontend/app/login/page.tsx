@@ -27,12 +27,19 @@ export default function LoginPage() {
     setError("");
     setInfoMessage("");
 
+    const wakeTimer = setTimeout(() => {
+      setInfoMessage("Connecting to live backend... (Cloud instance wakes up from cold sleep in ~30s)");
+    }, 2000);
+
     try {
       await api.login({ email, password });
+      clearTimeout(wakeTimer);
       router.push("/");
     } catch (err) {
+      clearTimeout(wakeTimer);
       setError(err instanceof Error ? err.message : "Invalid email or password.");
     } finally {
+      clearTimeout(wakeTimer);
       setLoading(false);
     }
   };

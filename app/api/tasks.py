@@ -130,6 +130,33 @@ async def create_task(
 		return task
 	except Exception as exc:
 		await db.rollback()
+		error_str = str(exc)
+		if "requires_approval" in error_str or "does not exist" in error_str or "no such column" in error_str:
+			try:
+				from sqlalchemy import text
+				for col, defn in [
+					("requires_approval", "BOOLEAN DEFAULT FALSE"),
+					("approval_status", "VARCHAR(50) DEFAULT 'none'"),
+					("token_cost", "FLOAT DEFAULT 0.0"),
+					("trace_id", "VARCHAR(64)"),
+				]:
+					try:
+						await db.execute(text(f"ALTER TABLE tasks ADD COLUMN IF NOT EXISTS {col} {defn}"))
+					except Exception:
+						try:
+							await db.execute(text(f"ALTER TABLE tasks ADD COLUMN {col} {defn}"))
+						except Exception:
+							pass
+				await db.commit()
+				# Re-attempt inserting the task after auto-migrating
+				db.add(task)
+				await db.commit()
+				await db.refresh(task)
+				return task
+			except Exception as migration_exc:
+				await db.rollback()
+				print(f"Self-healing migration failed: {migration_exc}")
+
 		import traceback
 		trace = traceback.format_exc()
 		print(f"Task creation exception: {trace}")

@@ -14,10 +14,29 @@ from app.core.database import Base, engine
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     try:
+        from sqlalchemy import select, text
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-
-        from sqlalchemy import select
+            # Automatic schema migration for existing PostgreSQL/SQLite deployments
+            new_cols = [
+                ("requires_approval", "BOOLEAN DEFAULT FALSE"),
+                ("approval_status", "VARCHAR(50) DEFAULT 'none'"),
+                ("token_cost", "FLOAT DEFAULT 0.0"),
+                ("trace_id", "VARCHAR(64)"),
+            ]
+            for col_name, col_type in new_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE tasks ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                except Exception:
+                    try:
+                        await conn.execute(text(f"ALTER TABLE tasks ADD COLUMN {col_name} {col_type}"))
+                    except Exception:
+                        pass
+            try:
+                await conn.execute(text("ALTER TYPE taskstatus ADD VALUE IF NOT EXISTS 'awaiting_approval'"))
+                await conn.execute(text("ALTER TYPE taskstatus ADD VALUE IF NOT EXISTS 'rejected'"))
+            except Exception:
+                pass
         from app.core.database import AsyncSessionLocal
         from app.core.security import get_password_hash
         from app.models.user import User
