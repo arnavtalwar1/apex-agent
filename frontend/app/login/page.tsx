@@ -7,9 +7,11 @@ import { api } from "@/lib/api";
 import { Eye, EyeOff, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import ApexLogo from "@/components/ApexLogo";
+import { useBrand } from "@/components/BrandProvider";
 
 function LoginForm() {
   const router = useRouter();
+  const { playIntroTransition } = useBrand();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get("redirect") || searchParams.get("next") || searchParams.get("returnUrl");
   const targetUrl = rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
@@ -41,12 +43,13 @@ function LoginForm() {
     try {
       await api.login({ email, password });
       clearTimeout(wakeTimer);
-      router.push(targetUrl);
+      // Play brand intro animation in between login and entering the platform
+      playIntroTransition(() => {
+        router.push(targetUrl);
+      });
     } catch (err) {
       clearTimeout(wakeTimer);
       setError(err instanceof Error ? err.message : "Invalid email or password.");
-    } finally {
-      clearTimeout(wakeTimer);
       setLoading(false);
     }
   };

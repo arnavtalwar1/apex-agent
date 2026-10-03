@@ -1,51 +1,79 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import BrandIntro from "./BrandIntro";
 
 interface BrandContextType {
   hasSeenIntro: boolean;
   replayIntro: () => void;
+  playIntroTransition: (callback?: () => void) => void;
+  isIntroPlaying: boolean;
 }
 
 const BrandContext = createContext<BrandContextType>({
-  hasSeenIntro: true,
+  hasSeenIntro: false,
   replayIntro: () => {},
+  playIntroTransition: () => {},
+  isIntroPlaying: false,
 });
 
 export const useBrand = () => useContext(BrandContext);
 
 export default function BrandProvider({ children }: { children: React.ReactNode }) {
-  const [hasSeenIntro, setHasSeenIntro] = useState(true);
-  const [forceShow, setForceShow] = useState(false);
+  // Start as true on first mount so the intro covers the screen before the page renders
+  const [isIntroPlaying, setIsIntroPlaying] = useState<boolean>(true);
+  const [forceShow, setForceShow] = useState<boolean>(false);
+  const [introCallback, setIntroCallback] = useState<(() => void) | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const seen = sessionStorage.getItem("apex_intro_seen");
-      if (!seen) {
-        setHasSeenIntro(false);
+      if (seen && !forceShow) {
+        setIsIntroPlaying(false);
+      } else {
+        setIsIntroPlaying(true);
       }
     }
-  }, []);
+  }, [forceShow]);
 
-  const replayIntro = () => {
+  const replayIntro = useCallback(() => {
     try {
       sessionStorage.removeItem("apex_intro_seen");
     } catch {
-      // Ignore in private modes
+      // Ignore
     }
-    setHasSeenIntro(false);
     setForceShow(true);
-  };
+    setIsIntroPlaying(true);
+  }, []);
 
-  const handleIntroComplete = () => {
-    setHasSeenIntro(true);
+  const playIntroTransition = useCallback((callback?: () => void) => {
+    if (callback) {
+      setIntroCallback(() => callback);
+    }
+    setForceShow(true);
+    setIsIntroPlaying(true);
+  }, []);
+
+  const handleIntroComplete = useCallback(() => {
+    setIsIntroPlaying(false);
     setForceShow(false);
-  };
+    if (introCallback) {
+      const cb = introCallback;
+      setIntroCallback(null);
+      cb();
+    }
+  }, [introCallback]);
 
   return (
-    <BrandContext.Provider value={{ hasSeenIntro, replayIntro }}>
-      {!hasSeenIntro && (
+    <BrandContext.Provider
+      value={{
+        hasSeenIntro: !isIntroPlaying,
+        replayIntro,
+        playIntroTransition,
+        isIntroPlaying,
+      }}
+    >
+      {isIntroPlaying && (
         <BrandIntro onComplete={handleIntroComplete} forceShow={forceShow} />
       )}
       {children}

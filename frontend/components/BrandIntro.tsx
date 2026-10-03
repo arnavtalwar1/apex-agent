@@ -9,7 +9,7 @@ interface BrandIntroProps {
 }
 
 export default function BrandIntro({ onComplete, forceShow = false }: BrandIntroProps) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [isReducedMotion, setIsReducedMotion] = useState(false);
 
   const handleDismiss = useCallback(() => {

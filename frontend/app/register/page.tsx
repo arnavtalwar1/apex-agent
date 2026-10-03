@@ -7,9 +7,11 @@ import { api } from "@/lib/api";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import ApexLogo from "@/components/ApexLogo";
+import { useBrand } from "@/components/BrandProvider";
 
 function RegisterForm() {
   const router = useRouter();
+  const { playIntroTransition } = useBrand();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get("redirect") || searchParams.get("next") || searchParams.get("returnUrl");
   const targetUrl = rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
@@ -46,10 +48,12 @@ function RegisterForm() {
       });
 
       await api.login({ email, password });
-      router.push(targetUrl);
+      // Play brand intro animation in between registration and entering the platform
+      playIntroTransition(() => {
+        router.push(targetUrl);
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed.");
-    } finally {
       setLoading(false);
     }
   };
