@@ -99,8 +99,9 @@ export default function PipelineStepper({
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3 relative">
         {NODES.map((node, index) => {
           const Icon = node.icon;
+          const isParallelActive = activeNodeId === "parallel" && (node.id === "planner" || node.id === "researcher");
           const isNodeFailed = isFailed && (activeNodeId === node.id || (activeIndex === -1 && index === 0));
-          const isActive = activeNodeId === node.id && !isCompleted && !isFailed;
+          const isActive = (activeNodeId === node.id || isParallelActive) && !isCompleted && !isFailed;
           const isPassed = isCompleted || (activeIndex > -1 && index < activeIndex);
 
           return (
@@ -147,7 +148,7 @@ export default function PipelineStepper({
               </div>
 
               <div className="text-[11px] text-slate-400 mt-1 line-clamp-1">
-                {node.desc}
+                {isParallelActive ? "Concurrent Parallel Execution" : node.desc}
               </div>
 
               {isNodeFailed && (
@@ -158,7 +159,7 @@ export default function PipelineStepper({
 
               {isActive && (
                 <span className="mt-2 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 animate-pulse">
-                  EXECUTING
+                  {isParallelActive ? "CONCURRENT" : "EXECUTING"}
                 </span>
               )}
             </motion.div>

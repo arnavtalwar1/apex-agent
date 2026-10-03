@@ -114,12 +114,16 @@ export default function TaskDetailPage() {
 
       if (agentName === "supervisor") {
         const nextNode = val.next_node as string;
+        let msg = "Supervisor active.";
+        if (nextNode) {
+          msg = nextNode.toLowerCase() === "parallel"
+            ? "Supervisor initiated simultaneous parallel execution → [PLANNER] & [RESEARCHER] working concurrently"
+            : `Supervisor evaluated state → Delegating to [${nextNode.toUpperCase()}]`;
+        }
         return {
           timestamp,
           agent: "supervisor",
-          message: nextNode
-            ? `Supervisor evaluated state → Delegating to [${nextNode.toUpperCase()}]`
-            : "Supervisor active.",
+          message: msg,
         };
       }
       if (agentName === "planner") {

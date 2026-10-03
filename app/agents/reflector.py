@@ -1,3 +1,4 @@
+from typing import Any
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.core.llm import get_llm
@@ -11,11 +12,11 @@ prompt = ChatPromptTemplate.from_messages(
 		(
 			"system",
 			"""You are a reflection agent. Analyze the execution result and any errors.
+Be direct, structured, and concise. Do not include conversational filler, preamble, or apologies.
 If execution failed:
-1. Identify the exact root cause of the error (e.g. missing API token, 401 unauthorized, invalid headers, network exception, or syntax bug).
-2. Fix the Python code snippet in the plan: make it robust, self-contained, and runnable in an automated sandbox (e.g. omit Authorization headers if token is missing/None, add exception handling, use public fallback endpoints or sample data).
+1. Identify the exact root cause of the error.
+2. Fix the Python code snippet in the plan: make it robust, self-contained, and runnable in an automated sandbox (no sys/os/subprocess imports, omit unneeded auth headers, add exception handling).
 3. Provide a clear CRITIQUE and the complete CORRECTED_PLAN.
-If execution succeeded, suggest improvements and identify uncovered edge cases.
 
 Use this format:
 - CRITIQUE: analysis of failure and resolution
@@ -29,8 +30,8 @@ Use this format:
 )
 
 
-def reflector_node(state: AgentState) -> AgentState:
-	model = get_llm(temperature=0.3, max_tokens=1024)
+def reflector_node(state: AgentState) -> dict[str, Any]:
+	model = get_llm(tier="fast", temperature=0.2, max_tokens=384)
 	response = (prompt | model).invoke(
 		{
 			"user_goal": state.get("user_goal", ""),
@@ -40,11 +41,13 @@ def reflector_node(state: AgentState) -> AgentState:
 		}
 	)
 	parsed = parse_reflection_output(response)
-	state["reflection_critique"] = response.content
-	state["iteration_count"] = state.get("iteration_count", 0) + 1
+	new_iteration = state.get("iteration_count", 0) + 1
+	new_plan = parsed.corrected_plan or state.get("plan", "")
 
+	state["reflection_critique"] = response.content
+	state["iteration_count"] = new_iteration
 	if parsed.corrected_plan:
-		state["plan"] = parsed.corrected_plan
+		state["plan"] = new_plan
 		state["execution_result"] = ""
 		state["error"] = ""
 
@@ -55,10 +58,17 @@ def reflector_node(state: AgentState) -> AgentState:
 			metadata={
 				"type": "reflection",
 				"goal": state.get("user_goal", ""),
-				"iteration": state["iteration_count"],
+				"iteration": new_iteration,
 			},
 		)
 	except Exception:
 		pass
 
-	return state
+	return {
+		"reflection_critique": response.content,
+		"iteration_count": new_iteration,
+		"plan": new_plan,
+		"execution_result": "",
+		"error": "",
+	}
+

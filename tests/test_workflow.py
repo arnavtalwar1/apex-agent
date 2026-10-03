@@ -72,3 +72,42 @@ async def test_workflow_end_to_end_execution():
     final_state = await graph.aget_state(config)
     assert final_state is not None
     assert "Workflow ok" in final_state.values.get("execution_result", "")
+
+
+@pytest.mark.asyncio
+async def test_parallel_simultaneous_execution():
+    graph = workflow.compile(checkpointer=MemorySaver())
+
+    planner_mock = MagicMock(content="1. Step one\n```python\nprint('Parallel ok')\n```")
+    research_mock = [
+        {"title": "Search result", "content": "Live intelligence", "url": "https://example.com"}
+    ]
+
+    initial_state: AgentState = {
+        "user_goal": "Perform parallel task",
+        "plan": "",
+        "research_data": "",
+        "execution_result": "",
+        "reflection_critique": "",
+        "iteration_count": 0,
+        "next_node": "",
+        "error": "",
+        "execution_mode": "parallel",
+    }
+
+    config = {"configurable": {"thread_id": "test-parallel-thread"}}
+
+    with patch("langchain_core.runnables.base.RunnableSequence.invoke", return_value=planner_mock), \
+         patch("app.agents.researcher.search_web", return_value=research_mock):
+
+        updates = []
+        async for update in graph.astream(initial_state, config, stream_mode="updates"):
+            updates.append(update)
+
+    final_state = await graph.aget_state(config)
+    assert final_state is not None
+    assert "Parallel ok" in final_state.values.get("execution_result", "")
+    assert "Live intelligence" in final_state.values.get("research_data", "")
+    assert any("planner" in u for u in updates)
+    assert any("researcher" in u for u in updates)
+

@@ -24,9 +24,13 @@ workflow.add_node("reflector", reflector_node)
 VALID_NODES = {"planner", "researcher", "executor", "reflector"}
 
 
-def route_next(state: AgentState) -> str:
+def route_next(state: AgentState):
 	node = state.get("next_node", "").strip().lower()
-	return node if node in VALID_NODES and state.get("iteration_count", 0) < settings.MAX_ITERATIONS else END
+	if state.get("iteration_count", 0) >= settings.MAX_ITERATIONS:
+		return END
+	if node == "parallel":
+		return ["planner", "researcher"]
+	return node if node in VALID_NODES else END
 
 
 workflow.set_entry_point("supervisor")
@@ -43,6 +47,7 @@ workflow.add_conditional_edges(
 )
 for node in ("planner", "researcher", "executor", "reflector"):
 	workflow.add_edge(node, "supervisor")
+
 
 
 def get_checkpointer():

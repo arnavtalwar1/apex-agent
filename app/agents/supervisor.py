@@ -1,9 +1,11 @@
+from typing import Any
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.core.config import settings
 from app.core.llm import get_llm
 from app.core.structured_llm import parse_supervisor_decision
 from app.graph.state import AgentState
+
 
 
 prompt = ChatPromptTemplate.from_messages(
@@ -39,29 +41,43 @@ Error: {error}""",
 )
 
 
-def supervisor_node(state: AgentState) -> AgentState:
+def supervisor_node(state: AgentState) -> dict[str, Any]:
 	exec_res = state.get("execution_result", "")
 	error = state.get("error", "")
 	iteration_count = state.get("iteration_count", 0)
+	plan_text = state.get("plan", "").strip()
+	research_text = state.get("research_data", "").strip()
+	execution_mode = state.get("execution_mode", "").lower()
 
-	# 1. Deterministic guard: If execution already succeeded without errors, immediately terminate without looping
+
+	# 1. Deterministic guard: If execution already succeeded without errors, immediately terminate without looping (0 tokens)
 	if exec_res and not error:
 		state["next_node"] = "FINISH"
-		return state
+		return {"next_node": "FINISH"}
 
-	# 2. Deterministic guard: If execution failed with an unaddressed error, route to REFLECTOR
+	# 2. Deterministic guard: If execution failed with an unaddressed error, route to REFLECTOR (0 tokens)
 	if error and iteration_count < settings.MAX_ITERATIONS:
 		state["next_node"] = "REFLECTOR"
-		return state
+		return {"next_node": "REFLECTOR"}
 
-	# 3. Deterministic guard: If iteration count reached max iterations, terminate
+	# 3. Deterministic guard: If iteration count reached max iterations, terminate (0 tokens)
 	if iteration_count >= settings.MAX_ITERATIONS:
 		state["next_node"] = "FINISH"
-		return state
+		return {"next_node": "FINISH"}
 
-	# 4. LLM supervisor decision with adequate token window for reasoning models
-	model = get_llm(temperature=0, max_tokens=256)
-	plan_text = state.get("plan", "").strip()
+	# 4. Zero-token fast-path: Simultaneous parallel multi-agent execution
+	# Both Planner and Researcher work concurrently when execution_mode is 'parallel' (default for live tasks)
+	if not plan_text and not research_text and execution_mode == "parallel":
+		state["next_node"] = "PARALLEL"
+		return {"next_node": "PARALLEL"}
+
+	# 5. Zero-token fast-path: If plan/research exist and execution hasn't run yet, delegate to Executor
+	if (plan_text or research_text) and not exec_res and not error and execution_mode == "parallel":
+		state["next_node"] = "EXECUTOR"
+		return {"next_node": "EXECUTOR"}
+
+	# 6. Fallback LLM supervisor decision for sequential mode or edge cases (token-efficient fast tier)
+	model = get_llm(tier="fast", temperature=0, max_tokens=128)
 	response = (prompt | model).invoke(
 		{
 			"user_goal": state.get("user_goal", ""),
@@ -100,4 +116,5 @@ def supervisor_node(state: AgentState) -> AgentState:
 	if state["next_node"] == "EXECUTOR" and state.get("execution_result") and not state.get("error"):
 		state["next_node"] = "FINISH"
 
-	return state
+	return {"next_node": state["next_node"]}
+

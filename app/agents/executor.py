@@ -3,8 +3,10 @@ import re
 import subprocess
 import sys
 import tempfile
+from typing import Any
 
 from langchain_core.prompts import ChatPromptTemplate
+
 
 from app.core.config import settings
 from app.core.llm import get_llm
@@ -55,7 +57,8 @@ synth_prompt = ChatPromptTemplate.from_messages(
 		(
 			"system",
 			"""You are an executive deliverable synthesizer.
-Using the research findings, plan, and user goal, produce a direct, polished, high-value final answer that directly satisfies the user's objective (e.g. structured bulleted list, exact prices, key specifications, or executive summary). Do not write placeholder text.""",
+Using the research findings, plan, and user goal, produce a direct, concise, high-value final answer that directly satisfies the user's objective (e.g. structured bulleted list, exact specifications, or executive summary).
+Be direct, structured, and concise. Do not include conversational preamble, conversational filler, or introductory remarks.""",
 		),
 		(
 			"human",
@@ -71,14 +74,14 @@ Plan:
 )
 
 
-def executor_node(state: AgentState) -> AgentState:
+def executor_node(state: AgentState) -> dict[str, Any]:
 	plan_text = state.get("plan", "")
 	code = extract_code(plan_text)
 
 	if not code:
 		if state.get("research_data"):
 			try:
-				model = get_llm(temperature=0.2, max_tokens=1024)
+				model = get_llm(tier="fast", temperature=0.2, max_tokens=384)
 				synthesis = (synth_prompt | model).invoke(
 					{
 						"user_goal": state.get("user_goal", ""),
@@ -86,13 +89,14 @@ def executor_node(state: AgentState) -> AgentState:
 						"plan": plan_text,
 					}
 				).content
-				state["execution_result"] = synthesis
-			except Exception as err:
-				state["execution_result"] = f"RESEARCH DATA:\n{state.get('research_data')}"
+				res_text = synthesis
+			except Exception:
+				res_text = f"RESEARCH DATA:\n{state.get('research_data')}"
 		else:
-			state["execution_result"] = "Plan verified: No executable Python code required."
+			res_text = "Plan verified: No executable Python code required."
+		state["execution_result"] = res_text
 		state["error"] = ""
-		return state
+		return {"execution_result": res_text, "error": ""}
 
 	sandbox = SecureSandbox(
 		timeout_seconds=settings.MAX_CODE_TIMEOUT_SECONDS,
@@ -102,10 +106,13 @@ def executor_node(state: AgentState) -> AgentState:
 	res = sandbox.execute(code)
 
 	if res.success:
-		state["execution_result"] = f"SUCCESS:\n{res.stdout or 'No output'}"
-		state["error"] = ""
+		exec_res = f"SUCCESS:\n{res.stdout or 'No output'}"
+		error_res = ""
 	else:
-		state["execution_result"] = f"FAILED (code {res.exit_code}):\n{res.stderr}"
-		state["error"] = res.stderr
+		exec_res = f"FAILED (code {res.exit_code}):\n{res.stderr}"
+		error_res = res.stderr
 
-	return state
+	state["execution_result"] = exec_res
+	state["error"] = error_res
+	return {"execution_result": exec_res, "error": error_res}
+

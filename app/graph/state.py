@@ -10,3 +10,5 @@ class AgentState(TypedDict, total=False):
 	iteration_count: int
 	next_node: str
 	error: str
+	execution_mode: str
+

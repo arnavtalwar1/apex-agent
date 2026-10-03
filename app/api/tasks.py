@@ -43,6 +43,7 @@ async def execute_task_lifecycle(task_id: int, thread_id: str):
 			"iteration_count": 0,
 			"next_node": "",
 			"error": "",
+			"execution_mode": "parallel",
 		}
 
 		accumulated_state = dict(initial_state)
@@ -55,6 +56,7 @@ async def execute_task_lifecycle(task_id: int, thread_id: str):
 				if "supervisor" in update:
 					node = update["supervisor"].get("next_node", "").lower()
 					status_map = {
+						"parallel": TaskStatus.PLANNING,
 						"planner": TaskStatus.PLANNING,
 						"researcher": TaskStatus.RESEARCHING,
 						"executor": TaskStatus.EXECUTING,
@@ -87,16 +89,17 @@ async def execute_task_lifecycle(task_id: int, thread_id: str):
 				plan_content = state.get("plan", "")
 				exec_res = state.get("execution_result", "")
 				research_data = state.get("research_data", "")
+				research_section = f"\n\n---\n### 🌐 Research Intelligence Gathered\n{research_data}" if research_data else ""
 
 				if exec_res and exec_res.strip() and not exec_res.startswith("FAILED") and not exec_res.startswith("EXCEPTION") and exec_res != "SUCCESS:\nNo output":
 					if plan_content and "SUCCESS:" in exec_res:
-						db_task.final_output = f"{plan_content}\n\n---\n### 🧪 Sandbox Execution Output\n```\n{exec_res}\n```"
+						db_task.final_output = f"{plan_content}{research_section}\n\n---\n### 🧪 Sandbox Execution Output\n```\n{exec_res}\n```"
 					else:
 						db_task.final_output = exec_res
 				elif plan_content:
 					verification_badge = "\n\n---\n✅ **Sandbox Verification:** Execution verified successfully (exit code 0)." if "SUCCESS" in exec_res else ""
 					failure_note = f"\n\n---\n### 🧪 Sandbox Verification Note\n```\n{exec_res}\n```" if (exec_res and "FAILED" in exec_res) else ""
-					db_task.final_output = f"{plan_content}{verification_badge}{failure_note}"
+					db_task.final_output = f"{plan_content}{research_section}{verification_badge}{failure_note}"
 				elif research_data:
 					db_task.final_output = research_data
 				else:
@@ -319,6 +322,7 @@ async def run_task(
 		"iteration_count": 0,
 		"next_node": "",
 		"error": "",
+		"execution_mode": "parallel",
 	}
 	task.status = TaskStatus.PLANNING
 	await db.commit()
@@ -337,6 +341,7 @@ async def run_task(
 						state = update["supervisor"]
 						node = state.get("next_node", "").lower()
 						status_map = {
+							"parallel": TaskStatus.PLANNING,
 							"planner": TaskStatus.PLANNING,
 							"researcher": TaskStatus.RESEARCHING,
 							"executor": TaskStatus.EXECUTING,
@@ -371,16 +376,17 @@ async def run_task(
 					plan_content = state.get("plan", "")
 					exec_res = state.get("execution_result", "")
 					research_data = state.get("research_data", "")
+					research_section = f"\n\n---\n### 🌐 Research Intelligence Gathered\n{research_data}" if research_data else ""
 
 					if exec_res and exec_res.strip() and not exec_res.startswith("FAILED") and not exec_res.startswith("EXCEPTION") and exec_res != "SUCCESS:\nNo output":
 						if plan_content and "SUCCESS:" in exec_res:
-							db_task.final_output = f"{plan_content}\n\n---\n### 🧪 Sandbox Execution Output\n```\n{exec_res}\n```"
+							db_task.final_output = f"{plan_content}{research_section}\n\n---\n### 🧪 Sandbox Execution Output\n```\n{exec_res}\n```"
 						else:
 							db_task.final_output = exec_res
 					elif plan_content:
 						verification_badge = "\n\n---\n✅ **Sandbox Verification:** Execution verified successfully (exit code 0)." if "SUCCESS" in exec_res else ""
 						failure_note = f"\n\n---\n### 🧪 Sandbox Verification Note\n```\n{exec_res}\n```" if (exec_res and "FAILED" in exec_res) else ""
-						db_task.final_output = f"{plan_content}{verification_badge}{failure_note}"
+						db_task.final_output = f"{plan_content}{research_section}{verification_badge}{failure_note}"
 					elif research_data:
 						db_task.final_output = research_data
 					else:

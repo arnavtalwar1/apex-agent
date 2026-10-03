@@ -4,10 +4,15 @@ from langchain_openai import ChatOpenAI
 from app.core.config import settings
 
 
-def get_llm(temperature: float = 0, max_tokens: int | None = None) -> Any:
+def get_llm(
+	temperature: float = 0,
+	max_tokens: int | None = None,
+	tier: str = "fast",
+) -> Any:
 	"""
 	Returns a LangChain LLM configured with automatic failover/fallback.
-	Allows granular max_tokens caps to minimize latency and token burn on lightweight nodes.
+	Supports 'fast' (token-efficient, ultra-low latency) and 'reasoning' (high-capacity) tiers.
+	Enforces granular max_tokens caps to minimize token waste and eliminate runaway burns.
 	"""
 	llms = []
 	limit_tokens = max_tokens or settings.MAX_TOKENS
@@ -17,12 +22,18 @@ def get_llm(temperature: float = 0, max_tokens: int | None = None) -> Any:
 		settings.OPENAI_API_KEY if settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.startswith("gsk_") else None
 	)
 	if groq_key:
-		groq_model = settings.MODEL_NAME
-		# Map legacy/retired models to active high-performance models on Groq
-		if any(legacy in groq_model.lower() for legacy in ["llama-3.3", "llama-3.1", "llama3"]):
+		# Use fast, token-efficient 20b model by default; reserve 120b for deep reasoning tier
+		if tier == "fast":
+			groq_model = "openai/gpt-oss-20b"
+			backup_groq_model = "openai/gpt-oss-120b"
+		else:
 			groq_model = "openai/gpt-oss-120b"
-		elif not any(m in groq_model.lower() for m in ["oss", "qwen", "allam"]):
-			groq_model = "openai/gpt-oss-120b"
+			backup_groq_model = "openai/gpt-oss-20b"
+
+		# If user configured a specific non-default model in settings, honor it
+		if settings.MODEL_NAME and not any(legacy in settings.MODEL_NAME.lower() for legacy in ["llama-3.3", "llama-3.1", "llama3"]):
+			if any(valid in settings.MODEL_NAME.lower() for valid in ["20b", "120b", "qwen", "allam"]):
+				groq_model = settings.MODEL_NAME
 
 		# Primary Groq model
 		llms.append(
@@ -37,7 +48,6 @@ def get_llm(temperature: float = 0, max_tokens: int | None = None) -> Any:
 		)
 
 		# Secondary Groq fallback model
-		backup_groq_model = "openai/gpt-oss-20b" if groq_model != "openai/gpt-oss-20b" else "qwen/qwen3.8-27b"
 		llms.append(
 			ChatOpenAI(
 				model=backup_groq_model,
