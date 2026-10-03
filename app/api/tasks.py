@@ -45,8 +45,13 @@ async def execute_task_lifecycle(task_id: int, thread_id: str):
 			"error": "",
 		}
 
+		accumulated_state = dict(initial_state)
 		try:
 			async for update in app_graph.astream(initial_state, config, stream_mode="updates"):
+				for node_name, node_state in update.items():
+					if isinstance(node_state, dict):
+						accumulated_state.update(node_state)
+
 				if "supervisor" in update:
 					node = update["supervisor"].get("next_node", "").lower()
 					status_map = {
@@ -74,7 +79,10 @@ async def execute_task_lifecycle(task_id: int, thread_id: str):
 					await session.commit()
 
 			final_state = await app_graph.aget_state(config)
-			state = final_state.values if final_state and final_state.values else {}
+			state = final_state.values if final_state and final_state.values else dict(accumulated_state)
+			for k, v in accumulated_state.items():
+				if v and not state.get(k):
+					state[k] = v
 			if db_task:
 				plan_content = state.get("plan", "")
 				exec_res = state.get("execution_result", "")
@@ -318,8 +326,13 @@ async def run_task(
 	async def event_generator():
 		async with AsyncSessionLocal() as session:
 			db_task = await session.get(Task, task_id)
+			accumulated_state = dict(initial_state)
 			try:
 				async for update in app_graph.astream(initial_state, config, stream_mode="updates"):
+					for node_name, node_state in update.items():
+						if isinstance(node_state, dict):
+							accumulated_state.update(node_state)
+
 					if "supervisor" in update:
 						state = update["supervisor"]
 						node = state.get("next_node", "").lower()
@@ -350,7 +363,10 @@ async def run_task(
 					yield f"data: {json.dumps(update, default=str)}\n\n"
 
 				final_state = await app_graph.aget_state(config)
-				state = final_state.values if final_state and final_state.values else {}
+				state = final_state.values if final_state and final_state.values else dict(accumulated_state)
+				for k, v in accumulated_state.items():
+					if v and not state.get(k):
+						state[k] = v
 				if db_task:
 					plan_content = state.get("plan", "")
 					exec_res = state.get("execution_result", "")

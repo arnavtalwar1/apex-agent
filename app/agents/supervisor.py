@@ -59,11 +59,13 @@ def supervisor_node(state: AgentState) -> AgentState:
 		state["next_node"] = "FINISH"
 		return state
 
-	model = get_llm(temperature=0, max_tokens=16)
+	# 4. LLM supervisor decision with adequate token window for reasoning models
+	model = get_llm(temperature=0, max_tokens=256)
+	plan_text = state.get("plan", "").strip()
 	response = (prompt | model).invoke(
 		{
 			"user_goal": state.get("user_goal", ""),
-			"plan": state.get("plan", ""),
+			"plan": plan_text,
 			"research_data": state.get("research_data", ""),
 			"execution_result": state.get("execution_result", ""),
 			"reflection_critique": state.get("reflection_critique", ""),
@@ -71,10 +73,13 @@ def supervisor_node(state: AgentState) -> AgentState:
 			"error": state.get("error", ""),
 		}
 	)
-	decision = parse_supervisor_decision(response)
+	decision = parse_supervisor_decision(
+		response,
+		default_fallback="PLANNER" if not plan_text else "EXECUTOR",
+	)
 	if decision.next_agent in {"PLANNER", "RESEARCHER", "EXECUTOR", "REFLECTOR", "FINISH"}:
 		state["next_node"] = decision.next_agent
-	elif not state.get("plan"):
+	elif not plan_text:
 		state["next_node"] = "PLANNER"
 	elif not state.get("research_data"):
 		state["next_node"] = "RESEARCHER"
@@ -83,8 +88,12 @@ def supervisor_node(state: AgentState) -> AgentState:
 	else:
 		state["next_node"] = "FINISH"
 
+	# Safety Guard: Never terminate prematurely if no plan exists or no execution/research was performed
+	if state["next_node"] == "FINISH" and not exec_res and not state.get("research_data"):
+		state["next_node"] = "PLANNER" if not plan_text else "EXECUTOR"
+
 	# Guard: Never re-run planner if plan already formulated unless in reflection
-	if state["next_node"] == "PLANNER" and state.get("plan") and not state.get("reflection_critique"):
+	if state["next_node"] == "PLANNER" and plan_text and not state.get("reflection_critique"):
 		state["next_node"] = "RESEARCHER" if not state.get("research_data") else "EXECUTOR"
 
 	# Guard: Never re-run executor if execution already completed without error

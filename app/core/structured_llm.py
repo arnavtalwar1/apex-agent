@@ -36,7 +36,10 @@ class ReflectionOutput(BaseModel):
     should_retry: bool = Field(default=True, description="Whether to retry execution")
 
 
-def parse_supervisor_decision(content: Any) -> SupervisorDecision:
+def parse_supervisor_decision(
+    content: Any,
+    default_fallback: Literal["PLANNER", "RESEARCHER", "EXECUTOR", "REFLECTOR", "FINISH"] = "PLANNER",
+) -> SupervisorDecision:
     """
     Parses supervisor LLM content into a validated SupervisorDecision.
     Handles JSON blocks, Pydantic objects, and plain uppercase text fallbacks.
@@ -69,7 +72,7 @@ def parse_supervisor_decision(content: Any) -> SupervisorDecision:
     if words:
         return SupervisorDecision(next_agent=words[0], reasoning=text)
 
-    return SupervisorDecision(next_agent="FINISH", reasoning="Default fallback")
+    return SupervisorDecision(next_agent=default_fallback, reasoning="Default fallback")
 
 
 def parse_reflection_output(content: Any) -> ReflectionOutput:

@@ -185,6 +185,9 @@ export default function TaskDetailPage() {
   const effectiveDeliverable = useMemo(() => {
     if (!task) return "";
     const raw = (task.final_output || "").trim();
+    if (raw === "Task completed successfully." && !task.plan) {
+      return "";
+    }
     const isTrivial =
       !raw ||
       raw.toLowerCase().includes("no output") ||
