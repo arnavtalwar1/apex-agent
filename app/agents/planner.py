@@ -1,3 +1,4 @@
+import re
 from typing import Any
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -10,25 +11,42 @@ prompt = ChatPromptTemplate.from_messages(
 	[
 		(
 			"system",
-			"""You are a planner. Break the user's goal into a clear, step-by-step actionable plan.
-Output a numbered list with a clear action, required tools, and expected outcome for each step.
-Be direct, structured, and concise. Avoid conversational filler, conversational preambles, or conversational intros/outros.
-If code execution, computation, or verification is needed, include a self-contained, executable Python code snippet inside a ```python ``` code block.
-Code snippets must run autonomously in an isolated sandbox:
-- For repository metrics, analytics, or external services: write self-contained Python computation using embedded samples, simulated structures, or regex. Do not block on external APIs that rate-limit or hang; if making an HTTP request, enforce timeout=2 with instant fallback sample data so execution finishes in under 2 seconds.
-- Do not import restricted system modules like sys, os, subprocess, shutil, or socket. Write clean Python code using standard libraries such as math, json, datetime, re, random, collections, itertools, or statistics.""",
+			"""You are an elite AI technical architect and planner. Break the user's goal into an actionable, comprehensive strategic plan.
+Output a numbered list with clear objectives, required data components, and expected outcomes.
+Be direct, structured, and authoritative. Do not include conversational filler, preamble, or apologies.
+
+If computation, data modeling, or metric verification is needed, include an executable Python code block (```python ... ```).
+Code snippets must run autonomously in the sandbox:
+- Write 100% self-contained Python computation code using standard libraries (math, json, datetime, re, random, collections, itertools, statistics).
+- For repository or dataset analytics: DO NOT make external HTTP or network requests in the script. Instead, embed representative domain data structures, compute key metrics/aggregations, and print a formatted summary table.
+- Do not import restricted system modules like sys, os, subprocess, shutil, or socket.""",
 		),
-		("human", "Goal: {user_goal}\nAdditional context: {research_data}"),
+		("human", "Goal: {user_goal}\nAdditional context / Ground Truth:\n{research_data}"),
 	]
 )
 
 
 def planner_node(state: AgentState) -> dict[str, Any]:
+	user_goal = state.get("user_goal", "")
+	research_data = state.get("research_data", "").strip()
+
+	# If research data is not yet set (e.g. concurrent parallel launch), retrieve ground truth directly
+	if not research_data:
+		repo_match = re.search(r"([\w.-]+/[\w.-]+)", user_goal)
+		if repo_match:
+			try:
+				from app.agents.researcher import fetch_github_raw
+				fetched = fetch_github_raw(repo_match.group(1))
+				if fetched:
+					research_data = f"### GitHub Ground Truth:\n{fetched}"
+			except Exception:
+				pass
+
 	model = get_llm(tier="fast", temperature=0.0, max_tokens=512)
 	response = (prompt | model).invoke(
 		{
-			"user_goal": state.get("user_goal", ""),
-			"research_data": state.get("research_data", ""),
+			"user_goal": user_goal,
+			"research_data": research_data or "General technical objective.",
 		}
 	)
 	state["plan"] = response.content

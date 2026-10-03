@@ -142,7 +142,7 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 	sandbox_stdout = (res.stdout or "").strip() or "Execution completed successfully with exit code 0."
 
 	try:
-		model = get_llm(tier="fast", temperature=0.1, max_tokens=768)
+		model = get_llm(tier="fast", temperature=0.1, max_tokens=1024)
 		synthesis = (synth_prompt | model).invoke(
 			{
 				"user_goal": user_goal,
