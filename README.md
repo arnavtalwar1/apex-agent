@@ -1,6 +1,6 @@
 # ⚡ APEX Agent: Self-Improving Agentic Task Automation System
 
-> **A Production-Grade Multi-Agent Cognitive Orchestration Platform with Dynamic Failure Recovery, Restricted Code Execution, and Live Observability**
+> **A Production-Oriented Multi-Agent Cognitive Orchestration Platform with Dynamic Failure Recovery, Restricted Code Execution, and Live Observability**
 >
 > *"Rooted in knowledge. Rising to intelligence."*
 
@@ -91,14 +91,14 @@ APEX orchestrates five specialized agent roles. The standard deployed runtime pa
 
 | Agent | Responsibility | Source Implementation |
 |---|---|---|
-| **Supervisor** | Evaluates current state using fast deterministic guards (0 tokens) before LLM fallback. Enforces execution boundaries (`MAX_ITERATIONS = 2`). | [`app/agents/supervisor.py`](file:///c:/Users/ASUS/apex-agent/app/agents/supervisor.py) |
-| **Planner** | Decomposes goals into structured strategic plans and self-contained Python computation blocks. Instructed never to fabricate repository metrics or datasets. Does not execute code. | [`app/agents/planner.py`](file:///c:/Users/ASUS/apex-agent/app/agents/planner.py) |
-| **Researcher** | Retrieves public GitHub repository `README.md` files (README evidence only; does not analyze full source trees) or queries web intelligence via Tavily with DuckDuckGo fallback. Cites URLs when available. | [`app/agents/researcher.py`](file:///c:/Users/ASUS/apex-agent/app/agents/researcher.py) |
-| **Executor** | Cleans code, repairs indentation (`ast.parse`), virtualizes file I/O (`open()`), verifies AST security, executes in an 8-second restricted subprocess, captures outputs, and synthesizes final deliverables. | [`app/agents/executor.py`](file:///c:/Users/ASUS/apex-agent/app/agents/executor.py) |
-| **Reflector** | Performs strategy-level LLM replanning on failure: diagnoses error root causes, provides natural language critique, updates code, and resets error flags for retry. (Not reinforcement learning / Q-learning). | [`app/agents/reflector.py`](file:///c:/Users/ASUS/apex-agent/app/agents/reflector.py) |
+| **Supervisor** | Evaluates current state using fast deterministic guards (0 tokens) before LLM fallback. Enforces execution boundaries (`MAX_ITERATIONS = 2`). | [`app/agents/supervisor.py`](app/agents/supervisor.py) |
+| **Planner** | Decomposes goals into structured strategic plans and self-contained Python computation blocks. Instructed never to fabricate repository metrics or datasets. Does not execute code. | [`app/agents/planner.py`](app/agents/planner.py) |
+| **Researcher** | Retrieves public GitHub repository `README.md` files (README evidence only; does not analyze full source trees) or queries web intelligence via Tavily with DuckDuckGo fallback. Cites URLs when available. | [`app/agents/researcher.py`](app/agents/researcher.py) |
+| **Executor** | Cleans code, repairs indentation (`ast.parse`), virtualizes file I/O (`open()`), verifies AST security, executes in an 8-second restricted subprocess, captures outputs, and synthesizes final deliverables. | [`app/agents/executor.py`](app/agents/executor.py) |
+| **Reflector** | Performs strategy-level LLM replanning on failure: diagnoses error root causes, provides natural language critique, updates code, and resets error flags for retry. (Not reinforcement learning / Q-learning). | [`app/agents/reflector.py`](app/agents/reflector.py) |
 
 ### Shared State: `AgentState`
-The shared working state passed between LangGraph nodes is defined in [`app/graph/state.py`](file:///c:/Users/ASUS/apex-agent/app/graph/state.py) as a `TypedDict(total=False)`, allowing fields to be populated incrementally across nodes:
+The shared working state passed between LangGraph nodes is defined in [`app/graph/state.py`](app/graph/state.py) as a `TypedDict(total=False)`, allowing fields to be populated incrementally across nodes:
 
 ```python
 class AgentState(TypedDict, total=False):
@@ -118,7 +118,7 @@ class AgentState(TypedDict, total=False):
 ## ⚙️ 4. Key Agent Workflows & Implementation Details
 
 ### 1. Supervisor Deterministic Routing
-Rather than issuing an expensive LLM call for every state change, [`app/agents/supervisor.py`](file:///c:/Users/ASUS/apex-agent/app/agents/supervisor.py) applies fast Python deterministic guards first:
+Rather than issuing an expensive LLM call for every state change, [`app/agents/supervisor.py`](app/agents/supervisor.py) applies fast Python deterministic guards first:
 - **Clean Execution**: If `execution_result` exists and `error` is empty -> routes directly to `FINISH` (0 tokens).
 - **Active Error**: If `error` is present and `iteration_count < MAX_ITERATIONS` -> routes to `REFLECTOR` (0 tokens).
 - **Boundary Breached**: If `iteration_count >= MAX_ITERATIONS` -> routes to `FINISH` (0 tokens).
@@ -132,7 +132,7 @@ Rather than issuing an expensive LLM call for every state change, [`app/agents/s
 - Clear, predictable debugging traces
 
 ### 2. Multi-Tier LLM Architecture & Provider Fallback
-Configured in [`app/core/llm.py`](file:///c:/Users/ASUS/apex-agent/app/core/llm.py):
+Configured in [`app/core/llm.py`](app/core/llm.py):
 - **Fast Tier** (`tier="fast"`): Low-latency, cost-effective inference used for Supervisor routing, Planner goal decomposition, and Reflector root-cause critiques. When Groq is configured, uses `openai/gpt-oss-20b` (with `openai/gpt-oss-120b` backup).
 - **Reasoning Tier** (`tier="reasoning"`): High-capacity model used for final deliverable synthesis in the Executor. When Groq is configured, uses `openai/gpt-oss-120b`.
 - **Automatic Provider Fallback**: Chained using LangChain `.with_fallbacks()` across:
@@ -141,7 +141,7 @@ Configured in [`app/core/llm.py`](file:///c:/Users/ASUS/apex-agent/app/core/llm.
   3. **Direct OpenAI** (Tertiary fallback using `MODEL_NAME = "gpt-4o-mini"`)
 
 ### 3. Restricted Subprocess Execution & AST Analysis
-Code execution in [`app/agents/executor.py`](file:///c:/Users/ASUS/apex-agent/app/agents/executor.py) and [`app/core/sandbox.py`](file:///c:/Users/ASUS/apex-agent/app/core/sandbox.py) follows a strict pipeline:
+Code execution in [`app/agents/executor.py`](app/agents/executor.py) and [`app/core/sandbox.py`](app/core/sandbox.py) follows a strict pipeline:
 1. **Extraction & Sanitization**: Extracts code from markdown blocks, removes package manager prefixes (`pip`, `npm`, `curl`), and strips outer whitespace.
 2. **Indentation Self-Healing**: Automatically corrects block and sub-line indentation mismatches using `textwrap.dedent()` and syntax recovery with `ast.parse()`.
 3. **Virtual File I/O**: Intercepts `open()` calls and wraps them in an in-memory virtual file dictionary using `io.StringIO` and `io.BytesIO`. This allows standard file-handling code to execute without writing to the host disk. It does **not** grant arbitrary filesystem access.
@@ -232,8 +232,8 @@ The frontend is built on **Next.js 16 (App Router)** and **React 19** with a cus
 
 | Module | Location | Current Implementation Status |
 |---|---|---|
-| **Observability Tracing** | [`app/core/observability.py`](file:///c:/Users/ASUS/apex-agent/app/core/observability.py) | **Partially Integrated**: `start_trace` and `finish_trace` generate and propagate unique `trace_id` values persisted in `Task.trace_id`. Individual LangGraph agent nodes do not yet record per-node granular timing metrics into the trace. |
-| **Cost Manager & Budgeting** | [`app/core/cost_manager.py`](file:///c:/Users/ASUS/apex-agent/app/core/cost_manager.py) | **Standalone / Tested**: Implements `TaskCostTracker`, `estimate_token_cost`, and `BudgetExceededError` with full unit test coverage. Not currently active in the main LangGraph execution loop. |
+| **Observability Tracing** | [`app/core/observability.py`](app/core/observability.py) | **Partially Integrated**: `start_trace` and `finish_trace` generate and propagate unique `trace_id` values persisted in `Task.trace_id`. Individual LangGraph agent nodes do not yet record per-node granular timing metrics into the trace. |
+| **Cost Manager & Budgeting** | [`app/core/cost_manager.py`](app/core/cost_manager.py) | **Standalone / Tested**: Implements `TaskCostTracker`, `estimate_token_cost`, and `BudgetExceededError` with full unit test coverage. Not currently active in the main LangGraph execution loop. |
 
 ---
 
@@ -308,7 +308,7 @@ npm run build  # Next.js 16.3.4 (Turbopack) production build succeeds cleanly
 - **Frontend**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Framer Motion, Lucide React.
 - **Database**: PostgreSQL (Production on Render) / SQLite with aiosqlite (Development).
 - **Authentication**: JWT (HMAC-SHA256) with access/refresh rotation and server-side revocation.
-- **DevOps**: Render Blueprint ([`render.yaml`](file:///c:/Users/ASUS/apex-agent/render.yaml)), Vercel, Docker Compose, Uvicorn.
+- **DevOps**: Render Blueprint ([`render.yaml`](render.yaml)), Vercel, Docker Compose, Uvicorn.
 
 ---
 
