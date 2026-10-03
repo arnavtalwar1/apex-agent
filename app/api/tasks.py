@@ -52,19 +52,26 @@ async def execute_task_lifecycle(task_id: int, thread_id: str):
 				for node_name, node_state in update.items():
 					if isinstance(node_state, dict):
 						accumulated_state.update(node_state)
-
-				if "supervisor" in update:
-					node = update["supervisor"].get("next_node", "").lower()
-					status_map = {
-						"parallel": TaskStatus.PLANNING,
-						"planner": TaskStatus.PLANNING,
-						"researcher": TaskStatus.RESEARCHING,
-						"executor": TaskStatus.EXECUTING,
-						"reflector": TaskStatus.REFLECTING,
-					}
-					if node in status_map and db_task:
-						db_task.current_node = node
-						db_task.status = status_map[node]
+					if db_task:
+						n_lower = node_name.lower()
+						if n_lower == "supervisor":
+							next_n = node_state.get("next_node", "").lower()
+							if next_n:
+								db_task.current_node = next_n
+						elif n_lower == "planner":
+							db_task.current_node = "planner"
+							db_task.status = TaskStatus.PLANNING
+							if "plan" in node_state:
+								db_task.plan = node_state["plan"]
+						elif n_lower == "researcher":
+							db_task.current_node = "researcher"
+							db_task.status = TaskStatus.RESEARCHING
+						elif n_lower == "executor":
+							db_task.current_node = "executor"
+							db_task.status = TaskStatus.EXECUTING
+						elif n_lower == "reflector":
+							db_task.current_node = "reflector"
+							db_task.status = TaskStatus.REFLECTING
 						await session.commit()
 
 				if "reflector" in update and db_task:
@@ -336,20 +343,26 @@ async def run_task(
 					for node_name, node_state in update.items():
 						if isinstance(node_state, dict):
 							accumulated_state.update(node_state)
-
-					if "supervisor" in update:
-						state = update["supervisor"]
-						node = state.get("next_node", "").lower()
-						status_map = {
-							"parallel": TaskStatus.PLANNING,
-							"planner": TaskStatus.PLANNING,
-							"researcher": TaskStatus.RESEARCHING,
-							"executor": TaskStatus.EXECUTING,
-							"reflector": TaskStatus.REFLECTING,
-						}
-						if node in status_map and db_task:
-							db_task.current_node = node
-							db_task.status = status_map[node]
+						if db_task:
+							n_lower = node_name.lower()
+							if n_lower == "supervisor":
+								next_n = node_state.get("next_node", "").lower()
+								if next_n:
+									db_task.current_node = next_n
+							elif n_lower == "planner":
+								db_task.current_node = "planner"
+								db_task.status = TaskStatus.PLANNING
+								if "plan" in node_state:
+									db_task.plan = node_state["plan"]
+							elif n_lower == "researcher":
+								db_task.current_node = "researcher"
+								db_task.status = TaskStatus.RESEARCHING
+							elif n_lower == "executor":
+								db_task.current_node = "executor"
+								db_task.status = TaskStatus.EXECUTING
+							elif n_lower == "reflector":
+								db_task.current_node = "reflector"
+								db_task.status = TaskStatus.REFLECTING
 							await session.commit()
 
 					if "reflector" in update and db_task:

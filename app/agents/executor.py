@@ -99,7 +99,7 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 		return {"execution_result": res_text, "error": ""}
 
 	sandbox = SecureSandbox(
-		timeout_seconds=settings.MAX_CODE_TIMEOUT_SECONDS,
+		timeout_seconds=min(settings.MAX_CODE_TIMEOUT_SECONDS, 8),
 		max_output_chars=settings.MAX_CODE_OUTPUT_CHARS,
 		enable_ast_check=settings.SECURE_SANDBOX_ENABLED,
 	)

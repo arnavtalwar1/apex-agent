@@ -45,6 +45,7 @@ export default function TaskDetailPage() {
 
   const logContainerRef = useRef<HTMLDivElement>(null);
   const cancelStreamRef = useRef<(() => void) | null>(null);
+  const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (autoScroll && logContainerRef.current) {
@@ -56,6 +57,9 @@ export default function TaskDetailPage() {
     return () => {
       if (cancelStreamRef.current) {
         cancelStreamRef.current();
+      }
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
       }
     };
   }, []);
@@ -158,6 +162,27 @@ export default function TaskDetailPage() {
     setError("");
     setLogs([]);
     setActiveTab("terminal");
+    setTask((prev) => (prev ? { ...prev, current_node: "supervisor", status: "running" } : prev));
+
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+    }
+    // Background polling fallback every 2.5 seconds to guarantee UI updates even if SSE buffers
+    pollTimerRef.current = setInterval(async () => {
+      try {
+        const latest = await api.getTask(taskId);
+        setTask((prev) => (prev ? { ...prev, ...latest } : latest));
+      } catch (err) {
+        console.warn("Task state background poll note", err);
+      }
+    }, 2500);
+
+    const cleanup = () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
 
     cancelStreamRef.current = api.runTask(
       taskId,
@@ -166,8 +191,44 @@ export default function TaskDetailPage() {
         if (entry) {
           setLogs((prev) => [...prev, entry]);
         }
+
+        // Real-time Stepper & Task State Sync
+        setTask((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev };
+          if (eventData.status && typeof eventData.status === "string") {
+            next.status = eventData.status;
+          }
+          if ("supervisor" in eventData && typeof eventData.supervisor === "object") {
+            const sup = eventData.supervisor as Record<string, unknown>;
+            if (sup?.next_node) {
+              next.current_node = String(sup.next_node).toLowerCase();
+            }
+          }
+          if ("planner" in eventData && typeof eventData.planner === "object") {
+            next.current_node = "planner";
+            const p = eventData.planner as Record<string, unknown>;
+            if (p?.plan && typeof p.plan === "string") next.plan = p.plan;
+          }
+          if ("researcher" in eventData) {
+            next.current_node = "researcher";
+          }
+          if ("executor" in eventData && typeof eventData.executor === "object") {
+            next.current_node = "executor";
+            const e = eventData.executor as Record<string, unknown>;
+            if (e?.execution_result && typeof e.execution_result === "string") {
+              next.final_output = e.execution_result;
+            }
+          }
+          if ("reflector" in eventData) {
+            next.current_node = "reflector";
+            next.reflection_count = (next.reflection_count || 0) + 1;
+          }
+          return next;
+        });
       },
       async () => {
+        cleanup();
         setRunning(false);
         try {
           const updated = await api.getTask(taskId);
@@ -180,6 +241,7 @@ export default function TaskDetailPage() {
         }
       },
       (err) => {
+        cleanup();
         setRunning(false);
         setError(err.message || "Agent execution failed");
       }

@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
 	# Sandbox & Security
 	SECURE_SANDBOX_ENABLED: bool = True
-	MAX_CODE_TIMEOUT_SECONDS: int = 30
+	MAX_CODE_TIMEOUT_SECONDS: int = 8
 	MAX_CODE_OUTPUT_CHARS: int = 25000
 	REQUIRE_APPROVAL_FOR_CODE_EXECUTION: bool = False
 
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 	MAX_COST_PER_TASK_USD: float = 0.50
 	ENABLE_OBSERVABILITY_TRACING: bool = True
 
-	MAX_ITERATIONS: int = 5
+	MAX_ITERATIONS: int = 2
 	MAX_TOKENS: int = 2048
 	MODEL_NAME: str = "gpt-4o-mini"
 
