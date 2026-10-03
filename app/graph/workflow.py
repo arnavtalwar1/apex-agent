@@ -50,17 +50,6 @@ for node in ("planner", "researcher", "executor", "reflector"):
 
 
 
-def get_checkpointer():
-	try:
-		from langgraph.checkpoint.redis import RedisSaver
-		saver = RedisSaver(settings.REDIS_URL)
-		saver.setup()
-		return saver
-	except Exception as error:
-		logger.warning("Redis checkpointer unavailable (%s). Falling back to MemorySaver.", error)
-		return MemorySaver()
-
-
-checkpointer = get_checkpointer()
+checkpointer = MemorySaver()
 app_graph = workflow.compile(checkpointer=checkpointer)
 

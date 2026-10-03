@@ -6,8 +6,6 @@ uvicorn[standard]>=0.30.0
 langchain>=0.3.0
 langchain-openai>=0.2.0
 langgraph>=0.2.38
-langgraph-checkpoint-redis>=0.1.0
-
 # Database
 sqlalchemy[asyncio]>=2.0.35
 greenlet>=3.0.0
@@ -18,9 +16,6 @@ alembic>=1.14.0
 # Security
 python-jose[cryptography]>=3.3.0
 bcrypt>=4.0.0
-
-# Redis
-redis>=6.2.0
 
 # Tools
 tavily-python>=0.5.0
