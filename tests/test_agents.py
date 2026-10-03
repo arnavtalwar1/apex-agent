@@ -18,11 +18,13 @@ def test_extract_code():
 
 
 def test_executor_node_successful_code():
+    mock_response = MagicMock(content="Factoring result: 120 verified.", response_metadata={})
     state: AgentState = {
         "user_goal": "Compute factorial of 5",
         "plan": "```python\nimport math\nprint('Result:', math.factorial(5))\n```",
     }
-    result = executor_node(state)
+    with patch("langchain_core.runnables.base.RunnableSequence.invoke", return_value=mock_response):
+        result = executor_node(state)
     assert "SUCCESS" in result["execution_result"]
     assert "Result: 120" in result["execution_result"]
     assert result["error"] == ""
@@ -39,18 +41,21 @@ def test_executor_node_failing_code():
 
 
 def test_executor_node_non_code_plan():
+    mock_response = MagicMock(content="Summary of key points from notes.", response_metadata={})
     state: AgentState = {
         "user_goal": "Summarize text",
         "plan": "1. Review notes.\n2. Summarize key points.",
     }
-    result = executor_node(state)
-    assert "No executable Python code required" in result["execution_result"]
+    with patch("langchain_core.runnables.base.RunnableSequence.invoke", return_value=mock_response):
+        result = executor_node(state)
+    assert "Summary of key points" in result["execution_result"]
     assert result["error"] == ""
 
 
 def test_reflector_node_updates_plan_and_resets_error():
     mock_response = MagicMock(
-        content="- CRITIQUE: Condition check needed.\n- CORRECTED_PLAN:\n```python\nprint(10)\n```"
+        content="- CRITIQUE: Condition check needed.\n- CORRECTED_PLAN:\n```python\nprint(10)\n```",
+        response_metadata={},
     )
     state: AgentState = {
         "user_goal": "Divide safely",
@@ -80,7 +85,7 @@ def test_supervisor_node_sanitizes_next_node():
 
 
 def test_planner_node():
-    mock_response = MagicMock(content="1. Step\n```python\nprint('done')\n```")
+    mock_response = MagicMock(content="1. Step\n```python\nprint('done')\n```", response_metadata={})
     state: AgentState = {"user_goal": "Process data"}
 
     with patch("langchain_core.runnables.base.RunnableSequence.invoke", return_value=mock_response):

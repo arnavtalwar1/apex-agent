@@ -77,11 +77,13 @@ export default function LoginPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+            <label htmlFor="login-email" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
               Email Address
             </label>
             <input
+              id="login-email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@example.com"
@@ -92,7 +94,7 @@ export default function LoginPage() {
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+              <label htmlFor="login-password" className="block text-xs font-bold uppercase tracking-wider text-slate-300">
                 Password
               </label>
               <button
@@ -105,7 +107,9 @@ export default function LoginPage() {
             </div>
             <div className="relative">
               <input
+                id="login-password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -114,6 +118,7 @@ export default function LoginPage() {
               />
               <button
                 type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
               >
@@ -154,6 +159,7 @@ export default function LoginPage() {
           {/* Quick fill demo credentials pill */}
           <button
             type="button"
+            aria-label="Auto-fill demo credentials"
             onClick={handleFillDemo}
             className="w-full rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center gap-2"
           >

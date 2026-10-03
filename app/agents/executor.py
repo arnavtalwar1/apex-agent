@@ -56,29 +56,16 @@ synth_prompt = ChatPromptTemplate.from_messages(
 	[
 		(
 			"system",
-			"""You are an elite AI technical analyst and executive deliverable synthesizer.
-Produce a thorough, authoritative, and structured Markdown deliverable that directly and comprehensively answers the user's objective (e.g. detailed repository analytics report, technical architecture breakdown, or empirical findings).
-
-Structure your deliverable with clear sections:
-# [Clear, Impactful Deliverable Title]
-
-## 1. Executive Summary & Context
-- Mission scope, core objectives, and high-level evaluation.
-
-## 2. Technical Architecture & System Breakdown
-- Component breakdown, tech stack / schema analysis, and workflow design.
-
-## 3. Key Analytical Findings & Derived Insights
-- Specific metrics, trends, structural patterns, or observations derived from runtime execution or web intelligence.
-
-## 4. Strategic Recommendations & Optimization Roadmap
-- High-priority action items, best practices, and next steps.
-
-Guidelines:
-- Strict Grounding: Anchor all architecture details, schema breakdowns, and findings strictly in the provided Web Intelligence, Strategic Plan, and Sandbox Runtime Output. Do not invent files, schemas, or metrics.
-- Distinguish empirical runtime data (from sandbox stdout) from contextual domain deductions.
-- Format with rich Markdown: bold key metrics, clean bulleted lists, and structured tables where helpful.
-- Be authoritative, specific, and direct. Avoid conversational filler, meta-announcements, or apologies.""",
+			"""You produce the final answer to the user's objective, not a plan or execution acknowledgement.
+Follow the user's requested format and scope. Use an appropriate structure for the task; do not force simple answers into a technical report.
+For code requests, include the requested implementation and relevant usage instructions.
+Ground factual claims in the supplied evidence. Cite source URLs when present.
+A plan is proposed work, not verified evidence. A README does not prove repository metrics or implementation details.
+Never invent data, files, metrics, citations, or claim live verification without supporting evidence.
+If external evidence is unavailable, state the limitation and answer only what can be supported by the user's input or general knowledge.
+Sandbox execution verifies only that the supplied code ran, not the truth of embedded data.
+Distinguish assumptions, illustrative examples, and actual observed results.
+Return a complete answer; avoid filler.""",
 		),
 		(
 			"human",
@@ -104,25 +91,7 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 	user_goal = state.get("user_goal", "")
 
 	if not code:
-		if research_data:
-			try:
-				model = get_llm(tier="fast", temperature=0.1, max_tokens=512)
-				synthesis = (synth_prompt | model).invoke(
-					{
-						"user_goal": user_goal,
-						"research_data": research_data,
-						"plan": plan_text,
-						"sandbox_output": "No code execution required.",
-					}
-				).content
-				res_text = synthesis
-			except Exception:
-				res_text = f"## Intelligence Report\n\n{plan_text}\n\n### Web Intelligence\n{research_data}"
-		else:
-			res_text = "Plan verified: No executable Python code required."
-		state["execution_result"] = res_text
-		state["error"] = ""
-		return {"execution_result": res_text, "error": ""}
+		return synthesize_answer(state, "No code execution required.")
 
 	sandbox = SecureSandbox(
 		timeout_seconds=min(settings.MAX_CODE_TIMEOUT_SECONDS, 8),
@@ -141,23 +110,28 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 	# Code executed cleanly in sandbox
 	sandbox_stdout = (res.stdout or "").strip() or "Execution completed successfully with exit code 0."
 
+	return synthesize_answer(state, sandbox_stdout, executed=True)
+
+
+def synthesize_answer(state: AgentState, sandbox_output: str, executed: bool = False) -> dict[str, Any]:
 	try:
-		model = get_llm(tier="fast", temperature=0.1, max_tokens=1024)
-		synthesis = (synth_prompt | model).invoke(
-			{
-				"user_goal": user_goal,
-				"research_data": research_data or "No external web intelligence required.",
-				"plan": plan_text,
-				"sandbox_output": sandbox_stdout,
-			}
-		).content
-		report = synthesis.strip()
-	except Exception:
-		report = f"## Verified Technical Analysis\n\n{plan_text}"
-
-	deliverable = f"{report}\n\n---\n### 🧪 Sandbox Runtime Execution Audit (SUCCESS)\n✅ **Status:** Verified (Exit code 0)\n```\n{sandbox_stdout}\n```"
-
-	state["execution_result"] = deliverable
-	state["error"] = ""
-	return {"execution_result": deliverable, "error": ""}
-
+		model = get_llm(tier="reasoning", temperature=0.1, max_tokens=settings.MAX_TOKENS)
+		response = (synth_prompt | model).invoke({
+			"user_goal": state.get("user_goal", ""),
+			"research_data": state.get("research_data", "") or "No external sources available.",
+			"plan": state.get("plan", ""),
+			"sandbox_output": sandbox_output,
+		})
+		if response.response_metadata.get("finish_reason") == "length":
+			raise ValueError("Answer exceeded the configured token limit; increase MAX_TOKENS.")
+		report = response.content.strip()
+		if not report:
+			raise ValueError("The model returned an empty answer.")
+		if executed:
+			report += f"\n\n---\n### Sandbox execution (SUCCESS)\nCode ran with exit code 0. Embedded data was not independently verified.\n```\n{sandbox_output}\n```"
+		result = {"execution_result": report, "error": ""}
+	except Exception as exc:
+		error = f"Answer generation failed: {exc}"
+		result = {"execution_result": error, "error": error}
+	state.update(result)
+	return result

@@ -2,6 +2,7 @@ from typing import Any
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.core.llm import get_llm
+from app.core.config import settings
 from app.core.memory import agent_memory
 from app.core.structured_llm import parse_reflection_output
 from app.graph.state import AgentState
@@ -31,7 +32,7 @@ Use this format:
 
 
 def reflector_node(state: AgentState) -> dict[str, Any]:
-	model = get_llm(tier="fast", temperature=0.0, max_tokens=384)
+	model = get_llm(tier="fast", temperature=0.0, max_tokens=min(settings.MAX_TOKENS, 2048))
 	response = (prompt | model).invoke(
 		{
 			"user_goal": state.get("user_goal", ""),
@@ -68,7 +69,6 @@ def reflector_node(state: AgentState) -> dict[str, Any]:
 		"reflection_critique": response.content,
 		"iteration_count": new_iteration,
 		"plan": new_plan,
-		"execution_result": "",
-		"error": "",
+		"execution_result": "" if parsed.corrected_plan else state.get("execution_result", ""),
+		"error": "" if parsed.corrected_plan else state.get("error", ""),
 	}
-

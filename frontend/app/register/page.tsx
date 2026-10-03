@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import { Zap, Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
+import { Zap, Eye, EyeOff, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function RegisterPage() {
@@ -74,11 +74,13 @@ export default function RegisterPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+            <label htmlFor="reg-name" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
               Full Name
             </label>
             <input
+              id="reg-name"
               type="text"
+              autoComplete="name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Alex Doe"
@@ -87,11 +89,13 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+            <label htmlFor="reg-email" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
               Email Address
             </label>
             <input
+              id="reg-email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@example.com"
@@ -101,12 +105,14 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+            <label htmlFor="reg-password" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
               Password
             </label>
             <div className="relative">
               <input
+                id="reg-password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
@@ -115,6 +121,7 @@ export default function RegisterPage() {
               />
               <button
                 type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
               >
