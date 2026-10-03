@@ -43,7 +43,7 @@ async def execute_task_lifecycle(task_id: int, thread_id: str):
 			"iteration_count": 0,
 			"next_node": "",
 			"error": "",
-			"execution_mode": "parallel",
+			"execution_mode": "sequential",
 		}
 
 		accumulated_state = dict(initial_state)
@@ -329,7 +329,7 @@ async def run_task(
 		"iteration_count": 0,
 		"next_node": "",
 		"error": "",
-		"execution_mode": "parallel",
+		"execution_mode": "sequential",
 	}
 	task.status = TaskStatus.PLANNING
 	await db.commit()

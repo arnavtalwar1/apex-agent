@@ -65,13 +65,25 @@ def supervisor_node(state: AgentState) -> dict[str, Any]:
 		state["next_node"] = "FINISH"
 		return {"next_node": "FINISH"}
 
-	# 4. Zero-token fast-path: Simultaneous parallel multi-agent execution
-	# Both Planner and Researcher work concurrently when execution_mode is 'parallel' (default for live tasks)
+	# 4. Zero-token deterministic sequential progression (Classic APEX Architecture)
+	if execution_mode == "sequential":
+		if not plan_text:
+			state["next_node"] = "PLANNER"
+			return {"next_node": "PLANNER"}
+		if not research_text:
+			state["next_node"] = "RESEARCHER"
+			return {"next_node": "RESEARCHER"}
+		if not exec_res and not error:
+			state["next_node"] = "EXECUTOR"
+			return {"next_node": "EXECUTOR"}
+		state["next_node"] = "FINISH"
+		return {"next_node": "FINISH"}
+
+	# 5. Parallel mode fast-path (if explicitly requested)
 	if not plan_text and not research_text and execution_mode == "parallel":
 		state["next_node"] = "PARALLEL"
 		return {"next_node": "PARALLEL"}
 
-	# 5. Zero-token fast-path: If plan/research exist and execution hasn't run yet, delegate to Executor
 	if (plan_text or research_text) and not exec_res and not error and execution_mode == "parallel":
 		state["next_node"] = "EXECUTOR"
 		return {"next_node": "EXECUTOR"}
