@@ -260,13 +260,16 @@ export default function TaskDetailPage() {
       raw === "SUCCESS:" ||
       raw === "SUCCESS" ||
       (raw.startsWith("SUCCESS:") && raw.length < 50) ||
-      raw.startsWith("FAILED (code");
+      raw.startsWith("FAILED (code") ||
+      (raw.length < 80 && Boolean(task.plan && task.plan.length > raw.length));
 
     if (isTrivial && task.plan) {
       const badge = raw.startsWith("SUCCESS")
         ? "\n\n---\n✅ **Sandbox Verification:** Execution verified successfully (exit code 0)."
         : raw.startsWith("FAILED")
         ? `\n\n---\n### 🧪 Sandbox Verification Note\n\`\`\`\n${raw}\n\`\`\``
+        : raw
+        ? `\n\n---\n### 🧪 Sandbox Execution Output\n\`\`\`\n${raw}\n\`\`\``
         : "";
       return `${task.plan}${badge}`;
     }

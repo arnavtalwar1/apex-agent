@@ -56,19 +56,41 @@ synth_prompt = ChatPromptTemplate.from_messages(
 	[
 		(
 			"system",
-			"""You are an executive deliverable synthesizer.
-Using the research findings, plan, and user goal, produce a direct, concise, high-value final answer that directly satisfies the user's objective (e.g. structured bulleted list, exact specifications, or executive summary).
-Be direct, structured, and concise. Do not include conversational preamble, conversational filler, or introductory remarks.""",
+			"""You are an elite AI technical analyst and executive deliverable synthesizer.
+Produce a thorough, authoritative, and structured Markdown deliverable that directly and comprehensively answers the user's objective (e.g. detailed repository analytics report, technical architecture breakdown, or empirical findings).
+
+Structure your deliverable with clear sections:
+# [Clear, Impactful Deliverable Title]
+
+## 1. Executive Summary & Context
+- Mission scope, core objectives, and high-level evaluation.
+
+## 2. Technical Architecture & System Breakdown
+- Component breakdown, tech stack / schema analysis, and workflow design.
+
+## 3. Key Analytical Findings & Derived Insights
+- Specific metrics, trends, structural patterns, or observations derived from runtime execution or web intelligence.
+
+## 4. Strategic Recommendations & Optimization Roadmap
+- High-priority action items, best practices, and next steps.
+
+Guidelines:
+- Incorporate empirical insights from the sandbox runtime execution output and web research intelligence.
+- Format with rich Markdown: bold metrics, clean bulleted lists, and structured tables where helpful.
+- Be authoritative, specific, and direct. Avoid conversational filler, meta-announcements, or apologies.""",
 		),
 		(
 			"human",
 			"""Objective: {user_goal}
 
-Research Findings:
+Web Intelligence:
 {research_data}
 
-Plan:
-{plan}""",
+Strategic Plan:
+{plan}
+
+Sandbox Runtime Output:
+{sandbox_output}""",
 		),
 	]
 )
@@ -77,21 +99,24 @@ Plan:
 def executor_node(state: AgentState) -> dict[str, Any]:
 	plan_text = state.get("plan", "")
 	code = extract_code(plan_text)
+	research_data = state.get("research_data", "")
+	user_goal = state.get("user_goal", "")
 
 	if not code:
-		if state.get("research_data"):
+		if research_data:
 			try:
-				model = get_llm(tier="fast", temperature=0.2, max_tokens=384)
+				model = get_llm(tier="fast", temperature=0.2, max_tokens=512)
 				synthesis = (synth_prompt | model).invoke(
 					{
-						"user_goal": state.get("user_goal", ""),
-						"research_data": state.get("research_data", ""),
+						"user_goal": user_goal,
+						"research_data": research_data,
 						"plan": plan_text,
+						"sandbox_output": "No code execution required.",
 					}
 				).content
 				res_text = synthesis
 			except Exception:
-				res_text = f"RESEARCH DATA:\n{state.get('research_data')}"
+				res_text = f"## Intelligence Report\n\n{plan_text}\n\n### Web Intelligence\n{research_data}"
 		else:
 			res_text = "Plan verified: No executable Python code required."
 		state["execution_result"] = res_text
@@ -105,14 +130,33 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 	)
 	res = sandbox.execute(code)
 
-	if res.success:
-		exec_res = f"SUCCESS:\n{res.stdout or 'No output'}"
-		error_res = ""
-	else:
+	if not res.success:
 		exec_res = f"FAILED (code {res.exit_code}):\n{res.stderr}"
 		error_res = res.stderr
+		state["execution_result"] = exec_res
+		state["error"] = error_res
+		return {"execution_result": exec_res, "error": error_res}
 
-	state["execution_result"] = exec_res
-	state["error"] = error_res
-	return {"execution_result": exec_res, "error": error_res}
+	# Code executed cleanly in sandbox
+	sandbox_stdout = (res.stdout or "").strip() or "Execution completed successfully with exit code 0."
+
+	try:
+		model = get_llm(tier="fast", temperature=0.2, max_tokens=768)
+		synthesis = (synth_prompt | model).invoke(
+			{
+				"user_goal": user_goal,
+				"research_data": research_data or "No external web intelligence required.",
+				"plan": plan_text,
+				"sandbox_output": sandbox_stdout,
+			}
+		).content
+		report = synthesis.strip()
+	except Exception:
+		report = f"## Verified Technical Analysis\n\n{plan_text}"
+
+	deliverable = f"{report}\n\n---\n### 🧪 Sandbox Runtime Execution Audit (SUCCESS)\n✅ **Status:** Verified (Exit code 0)\n```\n{sandbox_stdout}\n```"
+
+	state["execution_result"] = deliverable
+	state["error"] = ""
+	return {"execution_result": deliverable, "error": ""}
 
