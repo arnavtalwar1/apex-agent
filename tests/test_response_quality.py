@@ -120,3 +120,42 @@ def test_virtualize_file_io_preserves_code_without_open():
 
     code = "import math\nprint(math.sqrt(16))"
     assert virtualize_file_io(code) == code
+
+
+def test_extract_code_handles_nested_markdown_indentation():
+    # Markdown list with indented code block
+    text = """
+1. Step one
+   ```python
+       import json
+       data = {'item': 100}
+       print(data)
+   ```
+"""
+    code = extract_code(text)
+    import ast
+    # Ensure parsed without unexpected indent syntax error
+    ast.parse(code)
+    assert "import json" in code
+    assert "print(data)" in code
+
+
+def test_extract_github_repo_strips_sentence_words_after_dot():
+    goal = "This is a github repository . https://github.com/akashgahlot-1a/PowerBI-Starbucks-Beverage-Analytics.Analyse this repo and generate its report"
+    assert extract_github_repo(goal) == "akashgahlot-1a/PowerBI-Starbucks-Beverage-Analytics"
+
+
+def test_executor_synthesizes_on_final_iteration_after_failed_code():
+    from unittest.mock import patch, MagicMock
+    from app.agents.executor import executor_node
+
+    state: AgentState = {
+        "user_goal": "Analyse repo",
+        "plan": "```python\nraise RuntimeError('Mock execution issue')\n```",
+        "iteration_count": 2, # final reflection iteration
+    }
+    mock_resp = MagicMock(content="Comprehensive Repository Analysis Report", response_metadata={})
+    with patch("langchain_core.runnables.base.RunnableSequence.invoke", return_value=mock_resp):
+        res = executor_node(state)
+    assert "Comprehensive Repository Analysis Report" in res["execution_result"]
+    assert res["error"] == ""

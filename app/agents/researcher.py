@@ -10,7 +10,16 @@ def extract_github_repo(goal: str) -> str | None:
 	if url_match:
 		repo = url_match.group(1).rstrip("/.").removesuffix(".git")
 		parts = repo.split("/")
-		if len(parts) == 2 and parts[0] not in ("features", "pricing", "about", "contact"):
+		if len(parts) == 2 and parts[0].lower() not in ("features", "pricing", "about", "contact"):
+			repo_name = parts[1]
+			# Strip sentence words attached directly to repository name with a dot (e.g. repo.Analyse -> repo)
+			if "." in repo_name and not repo_name.lower().endswith(".git"):
+				subparts = repo_name.split(".")
+				if len(subparts) == 2 and (
+					subparts[1][:1].isupper()
+					or subparts[1].lower() in ("analyse", "analyze", "report", "check", "please", "generate", "inspect", "view")
+				):
+					repo = f"{parts[0]}/{subparts[0]}"
 			return repo
 	# Do not interpret portions of unrelated URLs as owner/repository names.
 	without_urls = re.sub(r"https?://\S+", "", goal)

@@ -1,8 +1,10 @@
+import ast
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import textwrap
 from typing import Any
 
 from langchain_core.prompts import ChatPromptTemplate
@@ -17,7 +19,7 @@ from app.graph.state import AgentState
 def extract_code(text: str) -> str:
 	py_match = re.search(r"```(?:python|py)\b[^\r\n]*[\r\n]+(.*?)```", text, re.DOTALL | re.IGNORECASE)
 	if py_match:
-		raw = py_match.group(1).strip()
+		raw = py_match.group(1)
 	else:
 		blocks = re.findall(r"```([a-zA-Z0-9_-]*)[^\r\n]*[\r\n]+(.*?)```", text, re.DOTALL)
 		raw = ""
@@ -29,15 +31,18 @@ def extract_code(text: str) -> str:
 		for lang, content in blocks:
 			if lang.strip().lower() in ignored_langs:
 				continue
-			raw = content.strip()
+			raw = content
 			break
 		if not raw and "```" in text and not blocks:
 			parts = text.split("```")
 			if len(parts) >= 3:
-				raw = parts[1].strip()
+				raw = parts[1]
 
-	if not raw:
+	if not raw or not raw.strip():
 		return ""
+
+	# 1. Dedent raw block so any uniform indentation from markdown lists/quotes is stripped evenly
+	raw = textwrap.dedent(raw)
 
 	non_code_prefixes = ("pip ", "pip3 ", "!pip ", "%pip ", "npm ", "yarn ", "pnpm ", "curl ", "apt-get ", "bash ", "sh ")
 	lines = raw.splitlines()
@@ -49,7 +54,24 @@ def extract_code(text: str) -> str:
 		if any(stripped.startswith(prefix) for prefix in non_code_prefixes):
 			continue
 		clean_lines.append(line)
-	return "\n".join(clean_lines).strip()
+
+	full_code = textwrap.dedent("\n".join(clean_lines)).strip()
+
+	# 2. Self-heal unexpected indentation on line 2+
+	try:
+		ast.parse(full_code)
+	except SyntaxError:
+		split_lines = full_code.splitlines()
+		if len(split_lines) > 1 and (split_lines[1].startswith("    ") or split_lines[1].startswith("\t")):
+			rest_dedented = textwrap.dedent("\n".join(split_lines[1:]))
+			healed = split_lines[0] + "\n" + rest_dedented
+			try:
+				ast.parse(healed)
+				full_code = healed
+			except SyntaxError:
+				pass
+
+	return full_code
 
 
 synth_prompt = ChatPromptTemplate.from_messages(
@@ -189,6 +211,13 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 		res = sandbox.execute(run_code)
 
 	if not res.success:
+		# If on the final reflection iteration, synthesize the final answer with an execution diagnosis
+		# so the user receives their complete report and analysis instead of a raw pipeline error.
+		iteration_count = state.get("iteration_count", 0)
+		if iteration_count >= settings.MAX_ITERATIONS - 1:
+			fail_note = f"Execution note: Sandbox execution encountered: {res.stderr.strip()}. Synthesizing comprehensive technical deliverable from research context and strategic plan."
+			return synthesize_answer(state, sandbox_output=fail_note, executed=False)
+
 		exec_res = f"FAILED (code {res.exit_code}):\n{res.stderr}"
 		error_res = res.stderr
 		state["execution_result"] = exec_res
