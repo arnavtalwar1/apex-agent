@@ -5,7 +5,7 @@ from typing import Any
 from app.core.config import settings
 
 
-def _sync_search_web(query: str, max_results: int = 3) -> list[dict[str, Any]]:
+def _sync_search_web(query: str, max_results: int = 5) -> list[dict[str, Any]]:
 	"""Search Tavily first and use DuckDuckGo as a fast no-key fallback."""
 	if settings.TAVILY_API_KEY:
 		try:
@@ -39,7 +39,7 @@ def _sync_search_web(query: str, max_results: int = 3) -> list[dict[str, Any]]:
 		return [{"title": f"Context: {query[:40]}", "content": f"Automated intelligence context gathered for {query[:80]}.", "url": ""}]
 
 
-async def search_web_async(query: str, max_results: int = 3, timeout_seconds: float = 3.5) -> list[dict[str, Any]]:
+async def search_web_async(query: str, max_results: int = 5, timeout_seconds: float = 3.5) -> list[dict[str, Any]]:
 	"""
 	Non-blocking asynchronous web search with strict timeout enforcement.
 	Guarantees search never hangs the multi-agent pipeline.
@@ -55,7 +55,7 @@ async def search_web_async(query: str, max_results: int = 3, timeout_seconds: fl
 		return [{"title": "Web Intelligence", "content": f"Search completed: {exc}", "url": ""}]
 
 
-def search_web(query: str, max_results: int = 3) -> list[dict[str, Any]]:
+def search_web(query: str, max_results: int = 5) -> list[dict[str, Any]]:
 	"""Synchronous wrapper with strict 4-second timeout guarantee."""
 	try:
 		with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:

@@ -72,7 +72,6 @@ export default function TaskList({ tasks, onTaskDeleted }: TaskListProps) {
       className="grid gap-4 md:grid-cols-2"
     >
       {tasks.map((task) => {
-        const isCompleted = task.status?.toLowerCase() === "completed";
         const hasDeliverable = Boolean(task.final_output);
 
         return (
@@ -106,6 +105,7 @@ export default function TaskList({ tasks, onTaskDeleted }: TaskListProps) {
                     type="button"
                     onClick={(e) => handleDelete(e, task.id)}
                     disabled={deletingId === task.id}
+                    aria-label={`Delete task ${task.id}`}
                     className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:bg-rose-950/60 hover:text-rose-400 hover:border-rose-500/30 border border-transparent transition-all z-20"
                     title="Delete Operation"
                   >

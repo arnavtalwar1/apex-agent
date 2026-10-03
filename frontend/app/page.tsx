@@ -218,12 +218,18 @@ export default function DashboardPage() {
         >
           <div className="rounded-3xl border border-white/10 bg-[#0c1322]/80 backdrop-blur-xl p-6 shadow-2xl">
             <form onSubmit={handleCreateTask} className="relative">
+              <label htmlFor="task-goal-input" className="sr-only">
+                Task Objective
+              </label>
               <div className="relative flex items-center">
                 <div className="absolute left-5 text-indigo-400 pointer-events-none">
                   <Sparkles size={22} />
                 </div>
                 <input
+                  id="task-goal-input"
                   type="text"
+                  autoComplete="off"
+                  aria-label="Task objective"
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                   placeholder="What would you like APEX to plan, research, or execute today?..."
@@ -232,6 +238,7 @@ export default function DashboardPage() {
                 <div className="absolute right-2">
                   <button
                     type="submit"
+                    aria-label="Deploy Agent"
                     disabled={submitting || !goal.trim()}
                     className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-rose-500 hover:from-indigo-500 hover:to-rose-400 px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
@@ -260,6 +267,7 @@ export default function DashboardPage() {
                 <button
                   key={idx}
                   type="button"
+                  aria-label={`Use template: ${item.title}`}
                   onClick={() => setGoal(item.prompt)}
                   className="rounded-full border border-white/5 bg-white/[0.02] hover:bg-white/[0.08] hover:border-indigo-500/40 px-3 py-1 text-xs text-slate-300 transition-colors"
                 >
@@ -299,6 +307,7 @@ export default function DashboardPage() {
                   <button
                     key={tab}
                     type="button"
+                    aria-label={`Filter tasks by ${tab} status`}
                     onClick={() => setStatusFilter(tab)}
                     className={`rounded-lg px-3 py-1.5 capitalize transition-all ${
                       statusFilter === tab
@@ -313,9 +322,15 @@ export default function DashboardPage() {
 
               {/* Search Box */}
               <div className="relative">
+                <label htmlFor="task-search-input" className="sr-only">
+                  Search Operations
+                </label>
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
+                  id="task-search-input"
                   type="text"
+                  autoComplete="off"
+                  aria-label="Filter tasks by title or goal"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filter tasks..."

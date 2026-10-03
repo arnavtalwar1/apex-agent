@@ -122,7 +122,13 @@ def synthesize_answer(state: AgentState, sandbox_output: str, executed: bool = F
 			"plan": state.get("plan", ""),
 			"sandbox_output": sandbox_output,
 		})
-		if response.response_metadata.get("finish_reason") == "length":
+		finish_reason = (
+			getattr(response, "response_metadata", {}).get("finish_reason")
+			or getattr(response, "response_metadata", {}).get("stop_reason")
+			or getattr(response, "additional_kwargs", {}).get("finish_reason")
+			or getattr(response, "additional_kwargs", {}).get("stop_reason")
+		)
+		if finish_reason in ("length", "max_tokens"):
 			raise ValueError("Answer exceeded the configured token limit; increase MAX_TOKENS.")
 		report = response.content.strip()
 		if not report:

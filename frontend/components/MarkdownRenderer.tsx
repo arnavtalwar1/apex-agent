@@ -271,6 +271,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
         </div>
         <button
           type="button"
+          aria-label="Copy code to clipboard"
           onClick={handleCopy}
           className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
         >

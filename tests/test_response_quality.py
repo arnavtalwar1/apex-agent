@@ -24,6 +24,13 @@ def test_extract_github_repo_url_and_removes_git():
     assert extract_github_repo("Analyze https://github.com/torvalds/linux.git now") == "torvalds/linux"
     assert extract_github_repo("Investigate owner/repo for architecture") == "owner/repo"
     assert extract_github_repo("See https://example.com/not/github for info") is None
+    assert extract_github_repo("Check https://github.com/arnavtalwar1/apex-agent repository") == "arnavtalwar1/apex-agent"
+    assert extract_github_repo("Inspect github.com/arnavtalwar1/apex-agent.") == "arnavtalwar1/apex-agent"
+
+
+def test_default_max_tokens_is_4096():
+    from app.core.config import settings
+    assert settings.MAX_TOKENS == 4096
 
 
 def test_synthesize_answer_execution_success():
@@ -79,3 +86,26 @@ def test_researcher_includes_citations():
     with patch("app.agents.researcher.search_web", return_value=results):
         res = researcher_node(state)
     assert "Source: https://fastapi.tiangolo.com" in res["research_data"]
+
+
+def test_text_only_task_generates_final_answer():
+    state: AgentState = {
+        "user_goal": "Explain architectural trade-offs of microservices",
+        "plan": "1. Define microservices.\n2. List trade-offs.",
+        "research_data": "Decoupled deployability vs distributed complexity.",
+    }
+    mock_resp = MagicMock(content="Microservices offer strong decoupling but increase operational complexity.", response_metadata={})
+    with patch("langchain_core.runnables.base.RunnableSequence.invoke", return_value=mock_resp):
+        res = executor_node(state)
+    assert res["error"] == ""
+    assert "Plan verified" not in res["execution_result"]
+    assert "Microservices offer strong decoupling" in res["execution_result"]
+
+
+def test_synthesize_answer_max_tokens_finish_reason():
+    state: AgentState = {"user_goal": "Lengthy request", "plan": "Plan"}
+    mock_resp = MagicMock(content="Cut-off output", response_metadata={"finish_reason": "max_tokens"})
+    with patch("langchain_core.runnables.base.RunnableSequence.invoke", return_value=mock_resp):
+        res = synthesize_answer(state, "Output", executed=False)
+    assert "Answer exceeded the configured token limit" in res["error"]
+

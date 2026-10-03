@@ -94,27 +94,24 @@ async def execute_task_lifecycle(task_id: int, thread_id: str):
 					state[k] = v
 			if db_task:
 				plan_content = state.get("plan", "")
-				exec_res = state.get("execution_result", "")
-				research_data = state.get("research_data", "")
-				research_section = f"\n\n---\n### 🌐 Research Intelligence Gathered\n{research_data}" if research_data else ""
+				exec_res = (state.get("execution_result") or "").strip()
+				error = (state.get("error") or "").strip()
 
-				if exec_res and exec_res.strip() and not exec_res.startswith("FAILED") and not exec_res.startswith("EXCEPTION") and exec_res != "SUCCESS:\nNo output":
-					if plan_content and "SUCCESS:" in exec_res:
-						db_task.final_output = f"{plan_content}{research_section}\n\n---\n### 🧪 Sandbox Execution Output\n```\n{exec_res}\n```"
-					else:
-						db_task.final_output = exec_res
-				elif plan_content:
-					verification_badge = "\n\n---\n✅ **Sandbox Verification:** Execution verified successfully (exit code 0)." if "SUCCESS" in exec_res else ""
-					failure_note = f"\n\n---\n### 🧪 Sandbox Verification Note\n```\n{exec_res}\n```" if (exec_res and "FAILED" in exec_res) else ""
-					db_task.final_output = f"{plan_content}{research_section}{verification_badge}{failure_note}"
-				elif research_data:
-					db_task.final_output = research_data
+				if error:
+					db_task.status = TaskStatus.FAILED
+					db_task.final_output = exec_res if (exec_res and "failed" in exec_res.lower()) else (f"{exec_res}\n\nError: {error}" if exec_res else error)
+				elif exec_res and (exec_res.startswith("FAILED") or exec_res.startswith("EXCEPTION") or exec_res.startswith("Answer generation failed")):
+					db_task.status = TaskStatus.FAILED
+					db_task.final_output = exec_res
+				elif exec_res:
+					db_task.status = TaskStatus.COMPLETED
+					db_task.final_output = exec_res
 				else:
-					db_task.final_output = exec_res or "Task completed successfully."
+					db_task.status = TaskStatus.FAILED
+					db_task.final_output = "Answer generation failed: No deliverable was produced."
 
 				db_task.plan = plan_content
 				db_task.reflection_count = state.get("iteration_count", 0)
-				db_task.status = TaskStatus.FAILED if state.get("error") else TaskStatus.COMPLETED
 				db_task.token_cost = trace.estimated_cost_usd
 				await session.commit()
 		except Exception as err:
@@ -387,30 +384,32 @@ async def run_task(
 						state[k] = v
 				if db_task:
 					plan_content = state.get("plan", "")
-					exec_res = state.get("execution_result", "")
-					research_data = state.get("research_data", "")
-					research_section = f"\n\n---\n### 🌐 Research Intelligence Gathered\n{research_data}" if research_data else ""
+					exec_res = (state.get("execution_result") or "").strip()
+					error = (state.get("error") or "").strip()
 
-					if exec_res and exec_res.strip() and not exec_res.startswith("FAILED") and not exec_res.startswith("EXCEPTION") and exec_res != "SUCCESS:\nNo output":
-						if plan_content and "SUCCESS:" in exec_res:
-							db_task.final_output = f"{plan_content}{research_section}\n\n---\n### 🧪 Sandbox Execution Output\n```\n{exec_res}\n```"
-						else:
-							db_task.final_output = exec_res
-					elif plan_content:
-						verification_badge = "\n\n---\n✅ **Sandbox Verification:** Execution verified successfully (exit code 0)." if "SUCCESS" in exec_res else ""
-						failure_note = f"\n\n---\n### 🧪 Sandbox Verification Note\n```\n{exec_res}\n```" if (exec_res and "FAILED" in exec_res) else ""
-						db_task.final_output = f"{plan_content}{research_section}{verification_badge}{failure_note}"
-					elif research_data:
-						db_task.final_output = research_data
+					if error:
+						db_task.status = TaskStatus.FAILED
+						db_task.final_output = exec_res if (exec_res and "failed" in exec_res.lower()) else (f"{exec_res}\n\nError: {error}" if exec_res else error)
+					elif exec_res and (exec_res.startswith("FAILED") or exec_res.startswith("EXCEPTION") or exec_res.startswith("Answer generation failed")):
+						db_task.status = TaskStatus.FAILED
+						db_task.final_output = exec_res
+					elif exec_res:
+						db_task.status = TaskStatus.COMPLETED
+						db_task.final_output = exec_res
 					else:
-						db_task.final_output = exec_res or "Task completed successfully."
+						db_task.status = TaskStatus.FAILED
+						db_task.final_output = "Answer generation failed: No deliverable was produced."
 
 					db_task.plan = plan_content
 					db_task.reflection_count = state.get("iteration_count", 0)
-					db_task.status = TaskStatus.FAILED if state.get("error") else TaskStatus.COMPLETED
 					db_task.token_cost = trace.estimated_cost_usd
 					await session.commit()
-				yield f"data: {json.dumps({'status': 'completed'})}\n\n"
+
+				final_status = db_task.status.value if db_task else ("failed" if state.get("error") else "completed")
+				yield f"data: {json.dumps({'status': final_status})}\n\n"
+				if final_status == "failed":
+					err_msg = (db_task.final_output if db_task else state.get("error")) or "Execution failed."
+					yield f"data: {json.dumps({'error': err_msg})}\n\n"
 			except Exception as err:
 				if db_task:
 					db_task.status = TaskStatus.FAILED

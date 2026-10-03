@@ -6,13 +6,16 @@ from app.tools.search import search_web
 
 
 def extract_github_repo(goal: str) -> str | None:
-	url_match = re.search(r"https?://(?:www\.)?github\.com/([\w.-]+/[\w.-]+)", goal, re.IGNORECASE)
+	url_match = re.search(r"(?:https?://)?(?:www\.)?github\.com/([a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+)", goal, re.IGNORECASE)
 	if url_match:
-		return url_match.group(1).removesuffix(".git")
+		repo = url_match.group(1).rstrip("/.").removesuffix(".git")
+		parts = repo.split("/")
+		if len(parts) == 2 and parts[0] not in ("features", "pricing", "about", "contact"):
+			return repo
 	# Do not interpret portions of unrelated URLs as owner/repository names.
 	without_urls = re.sub(r"https?://\S+", "", goal)
-	match = re.search(r"(?<![\w./])([\w.-]+/[\w.-]+)(?![\w./])", without_urls)
-	return match.group(1).removesuffix(".git") if match else None
+	match = re.search(r"(?<![\w./])([a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+)(?![\w./])", without_urls)
+	return match.group(1).rstrip("/.").removesuffix(".git") if match else None
 
 
 def fetch_github_raw(repo_path: str) -> str:

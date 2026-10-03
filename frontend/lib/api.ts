@@ -46,8 +46,9 @@ const handleJsonResponse = async <T>(response: Response): Promise<T> => {
     if (response.status === 401 && typeof window !== "undefined") {
       localStorage.removeItem("access_token");
       if (!window.location.pathname.startsWith("/login")) {
+        const currentPath = window.location.pathname + window.location.search;
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.href = "/login";
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
       }
     }
 

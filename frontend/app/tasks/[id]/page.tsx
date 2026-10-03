@@ -22,7 +22,6 @@ import {
   Download,
   FileText,
   Code2,
-  Trash2,
   Filter,
   ArrowDownCircle,
   AlertCircle,
@@ -67,7 +66,7 @@ export default function TaskDetailPage() {
   useEffect(() => {
     const token = getToken();
     if (!token) {
-      router.push("/login");
+      router.push(`/login?redirect=${encodeURIComponent(`/tasks/${taskId}`)}`);
       return;
     }
 
@@ -250,30 +249,7 @@ export default function TaskDetailPage() {
 
   const effectiveDeliverable = useMemo(() => {
     if (!task) return "";
-    const raw = (task.final_output || "").trim();
-    if (raw === "Task completed successfully." && !task.plan) {
-      return "";
-    }
-    const isTrivial =
-      !raw ||
-      raw.toLowerCase().includes("no output") ||
-      raw === "SUCCESS:" ||
-      raw === "SUCCESS" ||
-      (raw.startsWith("SUCCESS:") && raw.length < 50) ||
-      raw.startsWith("FAILED (code") ||
-      (raw.length < 80 && Boolean(task.plan && task.plan.length > raw.length));
-
-    if (isTrivial && task.plan) {
-      const badge = raw.startsWith("SUCCESS")
-        ? "\n\n---\n✅ **Sandbox Verification:** Execution verified successfully (exit code 0)."
-        : raw.startsWith("FAILED")
-        ? `\n\n---\n### 🧪 Sandbox Verification Note\n\`\`\`\n${raw}\n\`\`\``
-        : raw
-        ? `\n\n---\n### 🧪 Sandbox Execution Output\n\`\`\`\n${raw}\n\`\`\``
-        : "";
-      return `${task.plan}${badge}`;
-    }
-    return task.final_output || "";
+    return (task.final_output || "").trim();
   }, [task]);
 
   const handleCopyOutput = async () => {
@@ -425,6 +401,7 @@ export default function TaskDetailPage() {
                 type="button"
                 onClick={handleRunAgent}
                 disabled={running}
+                aria-label={task.final_output ? "Re-Run Pipeline" : "Initialize Agent"}
                 className="w-full sm:w-auto rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-rose-500 hover:from-indigo-500 hover:to-rose-400 px-8 py-4 text-sm font-extrabold text-white shadow-xl shadow-indigo-500/25 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
               >
                 {running ? (
@@ -460,9 +437,12 @@ export default function TaskDetailPage() {
         {/* Tab Switcher & Quick Actions Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           {/* Tabs */}
-          <div className="flex items-center rounded-2xl bg-white/[0.04] p-1.5 border border-white/5">
+          <div role="tablist" aria-label="Task content views" className="flex items-center rounded-2xl bg-white/[0.04] p-1.5 border border-white/5">
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "deliverable"}
+              aria-label="Final Deliverable"
               onClick={() => setActiveTab("deliverable")}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "deliverable"
@@ -479,6 +459,9 @@ export default function TaskDetailPage() {
 
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "plan"}
+              aria-label="Strategic Plan"
               onClick={() => setActiveTab("plan")}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "plan"
@@ -493,6 +476,9 @@ export default function TaskDetailPage() {
 
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "terminal"}
+              aria-label="Terminal Stream"
               onClick={() => setActiveTab("terminal")}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "terminal"
@@ -511,6 +497,9 @@ export default function TaskDetailPage() {
 
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "raw"}
+              aria-label="State JSON Inspector"
               onClick={() => setActiveTab("raw")}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "raw"
@@ -528,6 +517,7 @@ export default function TaskDetailPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                aria-label="Copy deliverable text to clipboard"
                 onClick={handleCopyOutput}
                 className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-2 text-xs font-bold text-slate-200 transition-colors"
               >
@@ -546,6 +536,7 @@ export default function TaskDetailPage() {
 
               <button
                 type="button"
+                aria-label="Export deliverable as Markdown"
                 onClick={handleExportMarkdown}
                 className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-2 text-xs font-bold text-slate-200 transition-colors"
               >
@@ -580,11 +571,11 @@ export default function TaskDetailPage() {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-white">
-                    {task.status === "failed" ? "Execution Deliverable (Verification Alert)" : "Executive Deliverable & Output"}
+                    {task.status === "failed" ? "Execution Failure & Diagnostic Error" : "Executive Deliverable & Output"}
                   </h2>
                   <p className="text-xs text-slate-400">
                     {task.status === "failed"
-                      ? "Execution encountered an error. Click 'Re-Run Pipeline' above to trigger self-healing automated execution."
+                      ? "The pipeline encountered an error and did not generate a successful deliverable. See error details below."
                       : "Compiled and verified by the APEX multi-agent execution pipeline"}
                   </p>
                 </div>
@@ -594,9 +585,9 @@ export default function TaskDetailPage() {
                 <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-950/30 p-4 text-xs text-rose-300 flex items-start gap-3">
                   <AlertCircle size={18} className="shrink-0 text-rose-400 mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-bold text-rose-200">Execution Notice</p>
+                    <p className="font-bold text-rose-200">Execution Error</p>
                     <p className="mt-1 text-slate-300 leading-relaxed">
-                      Sandbox execution returned an error during this run. Click the <span className="font-semibold text-white">Re-Run Pipeline</span> button above to trigger the self-healing reflection loop and verify code execution.
+                      Execution failed. Click the <span className="font-semibold text-white">Re-Run Pipeline</span> button above to re-trigger execution or view logs in the Terminal Stream.
                     </p>
                   </div>
                 </div>
@@ -605,6 +596,14 @@ export default function TaskDetailPage() {
               {effectiveDeliverable ? (
                 <div className="text-slate-200">
                   <MarkdownRenderer content={effectiveDeliverable} />
+                </div>
+              ) : task.status === "failed" ? (
+                <div className="py-16 text-center text-slate-400 flex flex-col items-center">
+                  <AlertCircle size={40} className="text-rose-500 mb-3" />
+                  <p className="font-semibold text-rose-300">Execution failed without deliverable</p>
+                  <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                    No answer or deliverable could be produced for this task.
+                  </p>
                 </div>
               ) : (
                 <div className="py-16 text-center text-slate-400 flex flex-col items-center">
@@ -682,6 +681,7 @@ export default function TaskDetailPage() {
                         <button
                           key={role}
                           type="button"
+                          aria-label={`Filter logs by ${role}`}
                           onClick={() => setTerminalFilter(role)}
                           className={`rounded-lg px-2 py-0.5 capitalize transition-colors ${
                             terminalFilter === role
@@ -698,6 +698,7 @@ export default function TaskDetailPage() {
                   {/* Auto-scroll toggle */}
                   <button
                     type="button"
+                    aria-label={`Toggle auto-scroll, currently ${autoScroll ? "enabled" : "disabled"}`}
                     onClick={() => setAutoScroll(!autoScroll)}
                     className={`flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-semibold border transition-colors ${
                       autoScroll

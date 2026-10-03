@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 	ENABLE_OBSERVABILITY_TRACING: bool = True
 
 	MAX_ITERATIONS: int = 2
-	MAX_TOKENS: int = 2048
+	MAX_TOKENS: int = 4096
 	MODEL_NAME: str = "gpt-4o-mini"
 
 	ALLOWED_ORIGINS: str = "*"

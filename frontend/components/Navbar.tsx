@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, getToken } from "@/lib/api";
 import type { User } from "@/types";
-import { Zap, LogOut, Activity, User as UserIcon, Shield } from "lucide-react";
+import { Zap, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Navbar() {
@@ -89,6 +89,7 @@ export default function Navbar() {
 
           <button
             type="button"
+            aria-label="Logout"
             onClick={handleLogout}
             className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400 transition-all duration-200"
           >
