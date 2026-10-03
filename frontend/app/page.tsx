@@ -1,45 +1,41 @@
 "use client";
 
-import { FormEvent, useEffect, useState, useMemo } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import TaskList from "@/components/TaskList";
 import { api, getToken } from "@/lib/api";
 import type { Task } from "@/types";
 import { motion } from "framer-motion";
-import { 
-  Sparkles, 
-  Terminal, 
-  Activity, 
-  CheckCircle2, 
-  Loader2, 
-  Search, 
-  RotateCcw, 
-  Cpu, 
-  Compass, 
-  Flame 
+import {
+  Sparkles,
+  Terminal,
+  RotateCcw,
+  CheckCircle2,
+  Loader2,
+  Search,
+  Cpu,
+  Compass,
+  Activity,
+  Flame,
 } from "lucide-react";
 
 const TEMPLATE_PROMPTS = [
   {
-    title: "🚗 EV Market Pricing & Range 2026",
-    prompt: "Provide a comprehensive market analysis of 2026 electric vehicle models, MSRP pricing, range, battery capacity, and key market trends in a structured comparison table.",
+    title: "Repository Architecture Analysis",
+    prompt: "Investigate https://github.com/arnavtalwar1/apex-agent and synthesize an executive architecture deliverable.",
   },
   {
-    title: "🔒 FastAPI Security & Auth Audit",
-    prompt: "Perform a security audit checklist for a FastAPI production application covering JWT authentication, rate limiting, CORS configuration, and SQL injection prevention.",
+    title: "Algorithmic Runtime Benchmark",
+    prompt: "Write a high-performance Python script to compute prime factorizations up to 100,000 and calculate throughput.",
   },
   {
-    title: "⚡ High-Throughput Async Scraper",
-    prompt: "Design and implement a high-throughput asynchronous Python scraper architecture with rate-limiting, proxy rotation, and retry backoff using httpx and asyncio.",
-  },
-  {
-    title: "📊 Semiconductor Supply Chain Forecast",
-    prompt: "Research and analyze global semiconductor manufacturing trends, TSMC 2nm process milestones, and AI accelerator GPU supply forecasts through 2027.",
+    title: "Microservices Trade-off Analysis",
+    prompt: "Analyze the architectural trade-offs between monolithic and event-driven microservices architectures.",
   },
 ];
 
-export default function DashboardPage() {
+export default function Dashboard() {
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goal, setGoal] = useState("");
@@ -100,23 +96,22 @@ export default function DashboardPage() {
       if (!matchesSearch) return false;
 
       if (statusFilter === "all") return true;
-      if (statusFilter === "completed") return t.status?.toLowerCase() === "completed";
-      if (statusFilter === "failed") return t.status?.toLowerCase() === "failed";
+      if (statusFilter === "completed") return t.status.toLowerCase() === "completed";
+      if (statusFilter === "failed") return t.status.toLowerCase() === "failed";
       if (statusFilter === "running") {
-        const s = t.status?.toLowerCase();
-        return s === "planning" || s === "researching" || s === "executing" || s === "reflecting";
+        return ["planning", "researching", "executing", "reflecting"].includes(t.status.toLowerCase());
       }
       return true;
     });
   }, [tasks, searchQuery, statusFilter]);
 
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t) => t.status?.toLowerCase() === "completed").length;
-  const successRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100;
+  const completedTasks = tasks.filter((t) => t.status.toLowerCase() === "completed").length;
   const totalReflections = tasks.reduce((acc, t) => acc + (t.reflection_count || 0), 0);
+  const successRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100;
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="min-h-screen pb-16 bg-[#F7F3E8]">
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
@@ -127,83 +122,83 @@ export default function DashboardPage() {
           className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
         >
           {/* Main Hero Banner */}
-          <div className="md:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-[#101935]/90 via-[#0e162d]/80 to-[#0a0f1d]/90 p-8 flex flex-col justify-between relative overflow-hidden backdrop-blur-xl shadow-2xl">
-            <div className="absolute top-0 right-0 -mr-10 -mt-10 h-48 w-48 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+          <div className="md:col-span-2 rounded-3xl border border-[#EADBCE] bg-gradient-to-br from-white via-[#FCFAF4] to-[#F7F3E8] p-8 flex flex-col justify-between relative overflow-hidden backdrop-blur-xl shadow-sm">
+            <div className="absolute top-0 right-0 -mr-10 -mt-10 h-48 w-48 rounded-full bg-[#F4B942]/10 blur-3xl pointer-events-none" />
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-950/60 px-3 py-1 text-xs font-semibold text-indigo-300 mb-4">
-                <Sparkles size={14} className="text-indigo-400" />
-                <span>Next-Gen Agentic Orchestration</span>
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#F4B942]/40 bg-[#F4B942]/15 px-3 py-1 text-xs font-bold text-[#3D2331] mb-4">
+                <Sparkles size={14} className="text-[#D49520]" />
+                <span>Autonomous Agentic Orchestration</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-2 leading-tight">
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#3D2331] mb-2 leading-tight">
                 Self-Improving Multi-Agent <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-rose-400">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#087F5B] via-[#D49520] to-[#E76F51]">
                   Cognitive Workflows
                 </span>
               </h1>
-              <p className="text-sm text-slate-300 max-w-md leading-relaxed mt-2">
+              <p className="text-sm text-[#59414E] max-w-md leading-relaxed mt-2 font-medium">
                 Deploy autonomous AI workflows with automatic subtask decomposition, live web intelligence, Python sandbox execution, and reflection loops.
               </p>
             </div>
 
-            <div className="mt-6 flex items-center gap-4 text-xs font-semibold text-slate-400">
+            <div className="mt-6 flex items-center gap-4 text-xs font-semibold text-[#59414E]">
               <span className="flex items-center gap-1.5">
-                <Cpu size={14} className="text-indigo-400" /> Multi-Tier LLM Fallback
+                <Cpu size={14} className="text-[#087F5B]" /> Multi-Tier LLM Fallback
               </span>
               <span className="flex items-center gap-1.5">
-                <Compass size={14} className="text-rose-400" /> Live Web Grounding
+                <Compass size={14} className="text-[#E76F51]" /> Live Web Grounding
               </span>
             </div>
           </div>
 
           {/* Metric 1: Success Rate */}
-          <div className="rounded-3xl border border-white/10 bg-[#0d1527]/70 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden shadow-xl">
+          <div className="rounded-3xl border border-[#EADBCE] bg-white/90 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#59414E]">
                 Cognitive Success
               </span>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#087F5B]/10 text-[#087F5B] border border-[#087F5B]/20">
                 <CheckCircle2 size={18} />
               </div>
             </div>
 
             <div className="my-4">
-              <div className="text-4xl font-extrabold text-white tracking-tight">
+              <div className="text-4xl font-extrabold text-[#3D2331] tracking-tight">
                 {successRate}%
               </div>
-              <div className="mt-2 h-2 w-full rounded-full bg-white/5 overflow-hidden">
+              <div className="mt-2 h-2 w-full rounded-full bg-[#EADBCE] overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-1000"
+                  className="h-full rounded-full bg-gradient-to-r from-[#087F5B] to-[#20C997] transition-all duration-1000"
                   style={{ width: `${successRate}%` }}
                 />
               </div>
             </div>
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#7E6875]">
               {completedTasks} completed out of {totalTasks} total operations
             </p>
           </div>
 
           {/* Metric 2: Self-Healing Reflections */}
-          <div className="rounded-3xl border border-white/10 bg-[#0d1527]/70 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden shadow-xl">
+          <div className="rounded-3xl border border-[#EADBCE] bg-white/90 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#59414E]">
                 Self-Healing Loops
               </span>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E76F51]/10 text-[#E76F51] border border-[#E76F51]/20">
                 <RotateCcw size={18} />
               </div>
             </div>
 
             <div className="my-4">
-              <div className="text-4xl font-extrabold text-white tracking-tight">
+              <div className="text-4xl font-extrabold text-[#3D2331] tracking-tight">
                 {totalReflections}
               </div>
-              <div className="text-xs text-purple-300 font-semibold mt-1 flex items-center gap-1">
+              <div className="text-xs text-[#C84F33] font-semibold mt-1 flex items-center gap-1">
                 <Activity size={12} /> Autonomous self-healing activations
               </div>
             </div>
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#7E6875]">
               Auto-critique & correction via Reflector Node
             </p>
           </div>
@@ -216,13 +211,13 @@ export default function DashboardPage() {
           transition={{ delay: 0.08 }}
           className="mb-8"
         >
-          <div className="rounded-3xl border border-white/10 bg-[#0c1322]/80 backdrop-blur-xl p-6 shadow-2xl">
+          <div className="rounded-3xl border border-[#EADBCE] bg-white/95 backdrop-blur-xl p-6 shadow-md">
             <form onSubmit={handleCreateTask} className="relative">
               <label htmlFor="task-goal-input" className="sr-only">
                 Task Objective
               </label>
               <div className="relative flex items-center">
-                <div className="absolute left-5 text-indigo-400 pointer-events-none">
+                <div className="absolute left-5 text-[#D49520] pointer-events-none">
                   <Sparkles size={22} />
                 </div>
                 <input
@@ -233,14 +228,14 @@ export default function DashboardPage() {
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                   placeholder="What would you like APEX to plan, research, or execute today?..."
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-4 pl-14 pr-44 text-sm sm:text-base text-white placeholder-slate-500 focus:border-indigo-500 focus:bg-white/[0.05] focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner"
+                  className="w-full rounded-2xl border border-[#EADBCE] bg-[#F7F3E8]/40 py-4 pl-14 pr-44 text-sm sm:text-base text-[#3D2331] placeholder-[#7E6875] focus:border-[#087F5B] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#087F5B]/10 transition-all shadow-inner"
                 />
                 <div className="absolute right-2">
                   <button
                     type="submit"
                     aria-label="Deploy Agent"
                     disabled={submitting || !goal.trim()}
-                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-rose-500 hover:from-indigo-500 hover:to-rose-400 px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="flex items-center gap-2 rounded-xl bg-[#087F5B] hover:bg-[#066649] px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-lg shadow-[#087F5B]/20 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     {submitting ? (
                       <>
@@ -259,9 +254,9 @@ export default function DashboardPage() {
             </form>
 
             {/* Prompt Template Chips */}
-            <div className="mt-4 flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
-              <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-                <Flame size={13} className="text-rose-400" /> Suggestions:
+            <div className="mt-4 flex flex-wrap items-center gap-2 pt-2 border-t border-[#EADBCE]/80">
+              <span className="text-xs font-semibold text-[#59414E] flex items-center gap-1">
+                <Flame size={13} className="text-[#E76F51]" /> Suggestions:
               </span>
               {TEMPLATE_PROMPTS.map((item, idx) => (
                 <button
@@ -269,7 +264,7 @@ export default function DashboardPage() {
                   type="button"
                   aria-label={`Use template: ${item.title}`}
                   onClick={() => setGoal(item.prompt)}
-                  className="rounded-full border border-white/5 bg-white/[0.02] hover:bg-white/[0.08] hover:border-indigo-500/40 px-3 py-1 text-xs text-slate-300 transition-colors"
+                  className="rounded-full border border-[#EADBCE] bg-white hover:bg-[#F7F3E8] hover:border-[#087F5B] hover:text-[#087F5B] px-3.5 py-1 text-xs text-[#59414E] transition-colors shadow-2xs font-medium"
                 >
                   {item.title}
                 </button>
@@ -277,8 +272,8 @@ export default function DashboardPage() {
             </div>
 
             {error && (
-              <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-950/30 px-4 py-2.5 text-xs text-rose-300 font-medium flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              <div className="mt-4 rounded-xl border border-[#E76F51]/30 bg-[#E76F51]/10 px-4 py-2.5 text-xs text-[#C84F33] font-medium flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E76F51] animate-pulse" />
                 {error}
               </div>
             )}
@@ -293,8 +288,8 @@ export default function DashboardPage() {
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 px-1">
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold tracking-tight text-white">Operations Hub</h2>
-              <span className="rounded-full bg-white/5 border border-white/5 px-2.5 py-0.5 text-xs font-semibold text-slate-400">
+              <h2 className="text-xl font-bold tracking-tight text-[#3D2331]">Operations Hub</h2>
+              <span className="rounded-full bg-white border border-[#EADBCE] px-2.5 py-0.5 text-xs font-semibold text-[#59414E]">
                 {filteredTasks.length} {filteredTasks.length === 1 ? "task" : "tasks"}
               </span>
             </div>
@@ -302,7 +297,7 @@ export default function DashboardPage() {
             {/* Filter Tabs & Search Bar */}
             <div className="flex flex-wrap items-center gap-3">
               {/* Status Tabs */}
-              <div className="flex items-center rounded-xl bg-white/[0.04] p-1 border border-white/5 text-xs font-semibold text-slate-400">
+              <div className="flex items-center rounded-xl bg-white p-1 border border-[#EADBCE] text-xs font-semibold text-[#59414E]">
                 {(["all", "running", "completed", "failed"] as const).map((tab) => (
                   <button
                     key={tab}
@@ -311,8 +306,8 @@ export default function DashboardPage() {
                     onClick={() => setStatusFilter(tab)}
                     className={`rounded-lg px-3 py-1.5 capitalize transition-all ${
                       statusFilter === tab
-                        ? "bg-indigo-600 text-white shadow-sm"
-                        : "hover:text-white"
+                        ? "bg-[#087F5B] text-white shadow-sm"
+                        : "hover:text-[#3D2331]"
                     }`}
                   >
                     {tab}
@@ -325,7 +320,7 @@ export default function DashboardPage() {
                 <label htmlFor="task-search-input" className="sr-only">
                   Search Operations
                 </label>
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7E6875]" />
                 <input
                   id="task-search-input"
                   type="text"
@@ -334,16 +329,16 @@ export default function DashboardPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filter tasks..."
-                  className="rounded-xl border border-white/5 bg-white/[0.03] pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="rounded-xl border border-[#EADBCE] bg-white pl-8 pr-3 py-1.5 text-xs text-[#3D2331] placeholder-[#7E6875] focus:outline-none focus:border-[#087F5B] transition-colors"
                 />
               </div>
             </div>
           </div>
 
           {loading ? (
-            <div className="rounded-3xl border border-white/5 bg-[#0d1527]/40 backdrop-blur-md p-20 text-center flex flex-col items-center justify-center">
-              <Loader2 size={36} className="text-indigo-400 animate-spin mb-3" />
-              <p className="text-sm font-medium text-slate-400">Syncing cognitive operations...</p>
+            <div className="rounded-3xl border border-[#EADBCE] bg-white/70 backdrop-blur-md p-20 text-center flex flex-col items-center justify-center shadow-sm">
+              <Loader2 size={36} className="text-[#087F5B] animate-spin mb-3" />
+              <p className="text-sm font-medium text-[#59414E]">Syncing cognitive operations...</p>
             </div>
           ) : (
             <TaskList

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import BrandProvider from "@/components/BrandProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "APEX Agent - Autonomous Multi-Agent AI Platform",
-  description: "Self-improving agentic task automation and multi-agent cognitive workflow dashboard",
+  title: "APEX - Rooted in Knowledge. Rising to Intelligence.",
+  description: "Autonomous Multi-Agent AI Platform & Cognitive Orchestration Engine",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -23,7 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[var(--background)] text-[var(--foreground)]">{children}</body>
+      <body className="min-h-full bg-[var(--background)] text-[var(--foreground)] selection:bg-[#F4B942]/30 selection:text-[#3D2331]">
+        <BrandProvider>{children}</BrandProvider>
+      </body>
     </html>
   );
 }

@@ -12,51 +12,51 @@ interface StyleConfig {
 
 const STATUS_CONFIG: Record<string, StyleConfig> = {
   pending: {
-    badge: "bg-slate-900/80 text-slate-300 border-slate-700/60",
-    dot: "bg-slate-400",
+    badge: "bg-[#3D2331]/5 text-[#59414E] border-[#EADBCE]",
+    dot: "bg-[#7E6875]",
   },
   planning: {
-    badge: "bg-amber-950/40 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-500/10",
-    dot: "bg-amber-400",
+    badge: "bg-[#F4B942]/15 text-[#9C6D08] border-[#F4B942]/40 shadow-sm",
+    dot: "bg-[#F4B942]",
     ping: true,
   },
   researching: {
-    badge: "bg-purple-950/40 text-purple-300 border-purple-500/40 shadow-sm shadow-purple-500/10",
-    dot: "bg-purple-400",
+    badge: "bg-[#3D2331]/10 text-[#3D2331] border-[#3D2331]/25 shadow-sm",
+    dot: "bg-[#523143]",
     ping: true,
   },
   executing: {
-    badge: "bg-indigo-950/40 text-indigo-300 border-indigo-500/40 shadow-sm shadow-indigo-500/10",
-    dot: "bg-indigo-400",
+    badge: "bg-[#087F5B]/10 text-[#087F5B] border-[#087F5B]/30 shadow-sm",
+    dot: "bg-[#087F5B]",
     ping: true,
   },
   reflecting: {
-    badge: "bg-rose-950/40 text-rose-300 border-rose-500/40 shadow-sm shadow-rose-500/10",
-    dot: "bg-rose-400",
+    badge: "bg-[#E76F51]/15 text-[#C84F33] border-[#E76F51]/35 shadow-sm",
+    dot: "bg-[#E76F51]",
     ping: true,
   },
   awaiting_approval: {
-    badge: "bg-amber-950/60 text-amber-300 border-amber-500/60 shadow-sm shadow-amber-500/20",
-    dot: "bg-amber-400",
+    badge: "bg-[#F4B942]/20 text-[#9C6D08] border-[#F4B942]/50 shadow-sm",
+    dot: "bg-[#F4B942]",
     ping: true,
   },
   rejected: {
-    badge: "bg-zinc-900 text-zinc-400 border-zinc-700/60",
-    dot: "bg-zinc-500",
+    badge: "bg-[#3D2331]/10 text-[#59414E] border-[#3D2331]/20",
+    dot: "bg-[#7E6875]",
   },
   completed: {
-    badge: "bg-emerald-950/40 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-500/10",
-    dot: "bg-emerald-400",
+    badge: "bg-[#087F5B]/15 text-[#066649] border-[#087F5B]/35 shadow-sm",
+    dot: "bg-[#087F5B]",
   },
   failed: {
-    badge: "bg-red-950/40 text-red-300 border-red-500/40 shadow-sm shadow-red-500/10",
-    dot: "bg-red-400",
+    badge: "bg-[#E76F51]/15 text-[#C84F33] border-[#E76F51]/35 shadow-sm",
+    dot: "bg-[#E76F51]",
   },
 };
 
 const DEFAULT_CONFIG: StyleConfig = {
-  badge: "bg-slate-900/80 text-slate-300 border-slate-700/60",
-  dot: "bg-slate-400",
+  badge: "bg-[#3D2331]/5 text-[#59414E] border-[#EADBCE]",
+  dot: "bg-[#7E6875]",
 };
 
 export default function StatusBadge({ status }: StatusBadgeProps) {

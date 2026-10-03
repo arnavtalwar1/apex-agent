@@ -284,37 +284,37 @@ export default function TaskDetailPage() {
     switch (a) {
       case "supervisor":
         return (
-          <span className="rounded-md bg-blue-950/80 text-blue-300 border border-blue-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+          <span className="rounded-md bg-[#3D2331] text-[#F7F3E8] border border-[#59414E] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
             Supervisor
           </span>
         );
       case "planner":
         return (
-          <span className="rounded-md bg-amber-950/80 text-amber-300 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+          <span className="rounded-md bg-[#F4B942]/20 text-[#F4B942] border border-[#F4B942]/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
             Planner
           </span>
         );
       case "researcher":
         return (
-          <span className="rounded-md bg-purple-950/80 text-purple-300 border border-purple-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+          <span className="rounded-md bg-[#087F5B]/20 text-[#087F5B] border border-[#087F5B]/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
             Researcher
           </span>
         );
       case "executor":
         return (
-          <span className="rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+          <span className="rounded-md bg-[#087F5B]/20 text-[#087F5B] border border-[#087F5B]/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
             Executor
           </span>
         );
       case "reflector":
         return (
-          <span className="rounded-md bg-rose-950/80 text-rose-300 border border-rose-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+          <span className="rounded-md bg-[#E76F51]/20 text-[#E76F51] border border-[#E76F51]/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
             Reflector
           </span>
         );
       default:
         return (
-          <span className="rounded-md bg-slate-800 text-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+          <span className="rounded-md bg-[#3D2331]/10 text-[#3D2331] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
             {agent}
           </span>
         );
@@ -323,11 +323,11 @@ export default function TaskDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pb-16">
+      <div className="min-h-screen pb-16 bg-[#F7F3E8]">
         <Navbar />
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center justify-center pt-24 text-slate-400">
-          <RotateCcw size={40} className="animate-spin mb-4 text-indigo-400" />
-          <p className="font-semibold text-slate-300">Synchronizing Cognitive State...</p>
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center justify-center pt-24 text-[#59414E]">
+          <RotateCcw size={40} className="animate-spin mb-4 text-[#087F5B]" />
+          <p className="font-semibold text-[#3D2331]">Synchronizing Cognitive State...</p>
         </main>
       </div>
     );
@@ -335,13 +335,13 @@ export default function TaskDetailPage() {
 
   if (!task) {
     return (
-      <div className="min-h-screen pb-16">
+      <div className="min-h-screen pb-16 bg-[#F7F3E8]">
         <Navbar />
         <main className="max-w-6xl mx-auto px-4 sm:px-6 text-center pt-20">
-          <p className="text-xl font-bold text-white mb-4">Task not found</p>
+          <p className="text-xl font-bold text-[#3D2331] mb-4">Task not found</p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-indigo-400 font-bold hover:underline"
+            className="inline-flex items-center gap-2 text-[#087F5B] font-bold hover:underline"
           >
             <ArrowLeft size={18} /> Return to Operations Dashboard
           </Link>
@@ -351,7 +351,7 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 bg-[#F7F3E8]">
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
@@ -359,7 +359,7 @@ export default function TaskDetailPage() {
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-bold text-[#59414E] hover:text-[#3D2331] transition-colors"
           >
             <ArrowLeft size={14} /> Back to Operations
           </Link>
@@ -369,28 +369,28 @@ export default function TaskDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-3xl border border-white/10 bg-[#0d1527]/80 backdrop-blur-xl p-6 sm:p-8 shadow-2xl mb-8 relative overflow-hidden"
+          className="rounded-3xl border border-[#EADBCE] bg-white/90 backdrop-blur-xl p-6 sm:p-8 shadow-sm mb-8 relative overflow-hidden"
         >
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2.5 mb-3">
                 <StatusBadge status={task.status} />
-                <span className="font-mono text-xs font-bold text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/5">
+                <span className="font-mono text-xs font-bold text-[#59414E] bg-[#F7F3E8] px-2.5 py-0.5 rounded-full border border-[#EADBCE]">
                   ID #{task.id}
                 </span>
                 {task.reflection_count > 0 && (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-300 bg-purple-950/60 px-2.5 py-0.5 rounded-full border border-purple-500/30">
-                    <RotateCcw size={12} className="text-purple-400" />
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-[#E76F51] bg-[#E76F51]/10 px-2.5 py-0.5 rounded-full border border-[#E76F51]/30">
+                    <RotateCcw size={12} className="text-[#E76F51]" />
                     {task.reflection_count} {task.reflection_count === 1 ? "reflection" : "reflections"}
                   </span>
                 )}
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-3">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#3D2331] mb-3">
                 {task.title || "Autonomous Task Execution"}
               </h1>
 
-              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-sm text-slate-300 leading-relaxed font-medium">
+              <div className="rounded-2xl border border-[#EADBCE] bg-[#F7F3E8]/50 p-4 text-sm text-[#59414E] leading-relaxed font-medium">
                 {task.goal}
               </div>
             </div>
@@ -402,7 +402,7 @@ export default function TaskDetailPage() {
                 onClick={handleRunAgent}
                 disabled={running}
                 aria-label={task.final_output ? "Re-Run Pipeline" : "Initialize Agent"}
-                className="w-full sm:w-auto rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-rose-500 hover:from-indigo-500 hover:to-rose-400 px-8 py-4 text-sm font-extrabold text-white shadow-xl shadow-indigo-500/25 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
+                className="w-full sm:w-auto rounded-2xl bg-[#087F5B] hover:bg-[#066649] px-8 py-4 text-sm font-extrabold text-white shadow-lg shadow-[#087F5B]/20 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
               >
                 {running ? (
                   <>
@@ -418,8 +418,8 @@ export default function TaskDetailPage() {
               </button>
 
               {error && (
-                <div className="text-xs text-rose-400 font-medium flex items-center gap-2 bg-rose-950/50 px-3 py-1.5 rounded-full border border-rose-500/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                <div className="text-xs text-[#E76F51] font-medium flex items-center gap-2 bg-[#E76F51]/10 px-3 py-1.5 rounded-full border border-[#E76F51]/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#E76F51] animate-pulse" />
                   {error}
                 </div>
               )}
@@ -437,7 +437,7 @@ export default function TaskDetailPage() {
         {/* Tab Switcher & Quick Actions Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           {/* Tabs */}
-          <div role="tablist" aria-label="Task content views" className="flex items-center rounded-2xl bg-white/[0.04] p-1.5 border border-white/5">
+          <div role="tablist" aria-label="Task content views" className="flex items-center rounded-2xl bg-white p-1.5 border border-[#EADBCE] shadow-2xs">
             <button
               type="button"
               role="tab"
@@ -446,14 +446,14 @@ export default function TaskDetailPage() {
               onClick={() => setActiveTab("deliverable")}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "deliverable"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#087F5B] text-white shadow-md shadow-[#087F5B]/20"
+                  : "text-[#59414E] hover:text-[#3D2331]"
               }`}
             >
               <FileText size={14} />
               <span>Final Deliverable</span>
               {effectiveDeliverable && (
-                <span className="h-2 w-2 rounded-full bg-emerald-400 inline-block" />
+                <span className="h-2 w-2 rounded-full bg-[#F4B942] inline-block" />
               )}
             </button>
 
@@ -465,13 +465,13 @@ export default function TaskDetailPage() {
               onClick={() => setActiveTab("plan")}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "plan"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#087F5B] text-white shadow-md shadow-[#087F5B]/20"
+                  : "text-[#59414E] hover:text-[#3D2331]"
               }`}
             >
               <Sparkles size={14} />
               <span>Strategic Plan</span>
-              {task.plan && <span className="h-2 w-2 rounded-full bg-amber-400 inline-block" />}
+              {task.plan && <span className="h-2 w-2 rounded-full bg-[#F4B942] inline-block" />}
             </button>
 
             <button
@@ -482,14 +482,14 @@ export default function TaskDetailPage() {
               onClick={() => setActiveTab("terminal")}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "terminal"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#087F5B] text-white shadow-md shadow-[#087F5B]/20"
+                  : "text-[#59414E] hover:text-[#3D2331]"
               }`}
             >
               <Terminal size={14} />
               <span>Terminal Stream</span>
               {logs.length > 0 && (
-                <span className="rounded-full bg-white/10 px-1.5 py-0.2 text-[10px]">
+                <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[10px]">
                   {logs.length}
                 </span>
               )}
@@ -503,8 +503,8 @@ export default function TaskDetailPage() {
               onClick={() => setActiveTab("raw")}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "raw"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#087F5B] text-white shadow-md shadow-[#087F5B]/20"
+                  : "text-[#59414E] hover:text-[#3D2331]"
               }`}
             >
               <Code2 size={14} />
@@ -519,12 +519,12 @@ export default function TaskDetailPage() {
                 type="button"
                 aria-label="Copy deliverable text to clipboard"
                 onClick={handleCopyOutput}
-                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-2 text-xs font-bold text-slate-200 transition-colors"
+                className="flex items-center gap-2 rounded-xl border border-[#EADBCE] bg-white hover:bg-[#F7F3E8] px-4 py-2 text-xs font-bold text-[#3D2331] transition-colors shadow-2xs"
               >
                 {copied ? (
                   <>
-                    <Check size={14} className="text-emerald-400" />
-                    <span className="text-emerald-400">Copied</span>
+                    <Check size={14} className="text-[#087F5B]" />
+                    <span className="text-[#087F5B]">Copied</span>
                   </>
                 ) : (
                   <>
@@ -538,7 +538,7 @@ export default function TaskDetailPage() {
                 type="button"
                 aria-label="Export deliverable as Markdown"
                 onClick={handleExportMarkdown}
-                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-2 text-xs font-bold text-slate-200 transition-colors"
+                className="flex items-center gap-2 rounded-xl border border-[#EADBCE] bg-white hover:bg-[#F7F3E8] px-4 py-2 text-xs font-bold text-[#3D2331] transition-colors shadow-2xs"
               >
                 <Download size={14} />
                 <span>Export Markdown</span>
@@ -555,25 +555,25 @@ export default function TaskDetailPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={`rounded-3xl border bg-[#0d1628]/90 backdrop-blur-xl p-8 shadow-2xl relative ${
-                task.status === "failed" ? "border-rose-500/25" : "border-emerald-500/20"
+              className={`rounded-3xl border bg-white p-8 sm:p-10 shadow-sm relative ${
+                task.status === "failed" ? "border-[#E76F51]/30" : "border-[#EADBCE]"
               }`}
             >
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[#EADBCE]">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
                     task.status === "failed"
-                      ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                      : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      ? "bg-[#E76F51]/10 text-[#E76F51] border-[#E76F51]/20"
+                      : "bg-[#087F5B]/10 text-[#087F5B] border-[#087F5B]/20"
                   }`}
                 >
                   {task.status === "failed" ? <AlertCircle size={22} /> : <CheckCircle2 size={22} />}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">
+                  <h2 className="text-lg font-bold text-[#3D2331]">
                     {task.status === "failed" ? "Execution Failure & Diagnostic Error" : "Executive Deliverable & Output"}
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[#59414E]">
                     {task.status === "failed"
                       ? "The pipeline encountered an error and did not generate a successful deliverable. See error details below."
                       : "Compiled and verified by the APEX multi-agent execution pipeline"}
@@ -582,34 +582,34 @@ export default function TaskDetailPage() {
               </div>
 
               {task.status === "failed" && (
-                <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-950/30 p-4 text-xs text-rose-300 flex items-start gap-3">
-                  <AlertCircle size={18} className="shrink-0 text-rose-400 mt-0.5" />
+                <div className="mb-6 rounded-2xl border border-[#E76F51]/30 bg-[#E76F51]/10 p-4 text-xs text-[#C84F33] flex items-start gap-3">
+                  <AlertCircle size={18} className="shrink-0 text-[#E76F51] mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-bold text-rose-200">Execution Error</p>
-                    <p className="mt-1 text-slate-300 leading-relaxed">
-                      Execution failed. Click the <span className="font-semibold text-white">Re-Run Pipeline</span> button above to re-trigger execution or view logs in the Terminal Stream.
+                    <p className="font-bold text-[#C84F33]">Execution Error</p>
+                    <p className="mt-1 text-[#59414E] leading-relaxed">
+                      Execution failed. Click the <span className="font-semibold text-[#3D2331]">Re-Run Pipeline</span> button above to re-trigger execution or view logs in the Terminal Stream.
                     </p>
                   </div>
                 </div>
               )}
 
               {effectiveDeliverable ? (
-                <div className="text-slate-200">
+                <div className="text-[#3D2331]">
                   <MarkdownRenderer content={effectiveDeliverable} />
                 </div>
               ) : task.status === "failed" ? (
-                <div className="py-16 text-center text-slate-400 flex flex-col items-center">
-                  <AlertCircle size={40} className="text-rose-500 mb-3" />
-                  <p className="font-semibold text-rose-300">Execution failed without deliverable</p>
-                  <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                <div className="py-16 text-center text-[#59414E] flex flex-col items-center">
+                  <AlertCircle size={40} className="text-[#E76F51] mb-3" />
+                  <p className="font-semibold text-[#E76F51]">Execution failed without deliverable</p>
+                  <p className="text-xs text-[#7E6875] mt-1 max-w-sm">
                     No answer or deliverable could be produced for this task.
                   </p>
                 </div>
               ) : (
-                <div className="py-16 text-center text-slate-400 flex flex-col items-center">
-                  <Terminal size={40} className="text-slate-600 mb-3" />
-                  <p className="font-semibold text-slate-300">Deliverable not yet generated</p>
-                  <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                <div className="py-16 text-center text-[#59414E] flex flex-col items-center">
+                  <Terminal size={40} className="text-[#7E6875] mb-3" />
+                  <p className="font-semibold text-[#3D2331]">Deliverable not yet generated</p>
+                  <p className="text-xs text-[#7E6875] mt-1 max-w-sm">
                     Click &quot;Initialize Agent&quot; above to run the pipeline and generate the final output.
                   </p>
                 </div>
@@ -623,28 +623,28 @@ export default function TaskDetailPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="rounded-3xl border border-amber-500/20 bg-[#0d1628]/90 backdrop-blur-xl p-8 shadow-2xl"
+              className="rounded-3xl border border-[#EADBCE] bg-white p-8 sm:p-10 shadow-sm"
             >
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[#EADBCE]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F4B942]/15 text-[#D49520] border border-[#F4B942]/30">
                   <Sparkles size={22} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Strategic Execution Plan</h2>
-                  <p className="text-xs text-slate-400">
+                  <h2 className="text-lg font-bold text-[#3D2331]">Strategic Execution Plan</h2>
+                  <p className="text-xs text-[#59414E]">
                     Cognitive goal decomposition and step-by-step strategy formulated by Planner Node
                   </p>
                 </div>
               </div>
 
               {task.plan ? (
-                <div className="text-slate-200">
+                <div className="text-[#3D2331]">
                   <MarkdownRenderer content={task.plan} />
                 </div>
               ) : (
-                <div className="py-16 text-center text-slate-400 flex flex-col items-center">
-                  <Sparkles size={40} className="text-slate-600 mb-3" />
-                  <p className="font-semibold text-slate-300">No execution plan available yet</p>
+                <div className="py-16 text-center text-[#59414E] flex flex-col items-center">
+                  <Sparkles size={40} className="text-[#7E6875] mb-3" />
+                  <p className="font-semibold text-[#3D2331]">No execution plan available yet</p>
                 </div>
               )}
             </motion.div>
@@ -656,26 +656,26 @@ export default function TaskDetailPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="rounded-3xl border border-white/10 bg-[#090d18] shadow-2xl overflow-hidden"
+              className="rounded-3xl border border-[#3D2331]/20 bg-[#251520] shadow-xl overflow-hidden text-white"
             >
               {/* Terminal Window Header */}
-              <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-white/10 bg-white/[0.02]">
+              <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-white/10 bg-white/5">
                 <div className="flex items-center gap-3">
                   <div className="flex gap-2">
-                    <span className="h-3 w-3 rounded-full bg-rose-500/80" />
-                    <span className="h-3 w-3 rounded-full bg-amber-400/80" />
-                    <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
+                    <span className="h-3 w-3 rounded-full bg-[#E76F51]" />
+                    <span className="h-3 w-3 rounded-full bg-[#F4B942]" />
+                    <span className="h-3 w-3 rounded-full bg-[#087F5B]" />
                   </div>
-                  <span className="font-mono text-xs font-bold text-slate-300 ml-2 flex items-center gap-2">
-                    <Terminal size={14} className="text-indigo-400" />
+                  <span className="font-mono text-xs font-bold text-[#F7F3E8] ml-2 flex items-center gap-2">
+                    <Terminal size={14} className="text-[#F4B942]" />
                     APEX Terminal Stream
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3">
                   {/* Agent Role Filter */}
-                  <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 text-[11px] font-semibold text-slate-400">
-                    <Filter size={12} className="ml-1 mr-1 text-slate-500" />
+                  <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 text-[11px] font-semibold text-[#EADBCE]">
+                    <Filter size={12} className="ml-1 mr-1 text-[#EADBCE]/60" />
                     {["all", "supervisor", "planner", "researcher", "executor", "reflector"].map(
                       (role) => (
                         <button
@@ -685,7 +685,7 @@ export default function TaskDetailPage() {
                           onClick={() => setTerminalFilter(role)}
                           className={`rounded-lg px-2 py-0.5 capitalize transition-colors ${
                             terminalFilter === role
-                              ? "bg-indigo-600 text-white"
+                              ? "bg-[#087F5B] text-white"
                               : "hover:text-white"
                           }`}
                         >
@@ -702,8 +702,8 @@ export default function TaskDetailPage() {
                     onClick={() => setAutoScroll(!autoScroll)}
                     className={`flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-semibold border transition-colors ${
                       autoScroll
-                        ? "border-indigo-500/40 bg-indigo-950/50 text-indigo-300"
-                        : "border-white/10 bg-white/5 text-slate-400"
+                        ? "border-[#087F5B]/50 bg-[#087F5B]/20 text-[#087F5B]"
+                        : "border-white/10 bg-white/5 text-[#EADBCE]"
                     }`}
                   >
                     <ArrowDownCircle size={13} />
@@ -715,15 +715,15 @@ export default function TaskDetailPage() {
               {/* Terminal Logs Container */}
               <div
                 ref={logContainerRef}
-                className="h-[520px] overflow-y-auto p-6 font-mono text-xs text-slate-300 space-y-4 leading-relaxed"
+                className="h-[520px] overflow-y-auto p-6 font-mono text-xs text-[#EADBCE] space-y-4 leading-relaxed"
               >
                 {filteredLogs.length === 0 && !running && (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                    <Terminal size={48} className="mb-3 opacity-30 text-indigo-400" />
-                    <p className="font-sans text-sm font-medium text-slate-400">
+                  <div className="h-full flex flex-col items-center justify-center text-[#7E6875]">
+                    <Terminal size={48} className="mb-3 opacity-30 text-[#F4B942]" />
+                    <p className="font-sans text-sm font-medium text-[#EADBCE]">
                       Terminal stream idle.
                     </p>
-                    <p className="font-sans text-xs text-slate-600 mt-1">
+                    <p className="font-sans text-xs text-[#7E6875] mt-1">
                       Click &quot;Initialize Agent&quot; to inspect real-time multi-agent communication.
                     </p>
                   </div>
@@ -737,17 +737,17 @@ export default function TaskDetailPage() {
                     className="flex flex-col sm:flex-row sm:items-start gap-3 border-b border-white/5 pb-4 last:border-0 last:pb-0"
                   >
                     <div className="flex items-center gap-2 shrink-0 sm:w-48">
-                      <span className="text-slate-500 text-[11px]">{log.timestamp}</span>
+                      <span className="text-[#EADBCE]/50 text-[11px]">{log.timestamp}</span>
                       {getAgentBadge(log.agent)}
                     </div>
-                    <div className="flex-1 whitespace-pre-wrap break-words leading-relaxed text-slate-200">
+                    <div className="flex-1 whitespace-pre-wrap break-words leading-relaxed text-[#F7F3E8]">
                       {log.message}
                     </div>
                   </motion.div>
                 ))}
 
                 {running && (
-                  <div className="flex items-center gap-3 text-indigo-400 animate-pulse pt-3 text-xs font-bold font-mono">
+                  <div className="flex items-center gap-3 text-[#F4B942] animate-pulse pt-3 text-xs font-bold font-mono">
                     <RotateCcw size={14} className="animate-spin" />
                     <span>COGNITIVE ENGINE WORKING (STREAMING EVENT TOKENS)...</span>
                   </div>
@@ -762,15 +762,15 @@ export default function TaskDetailPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="rounded-3xl border border-white/10 bg-[#090d18] p-6 shadow-2xl overflow-hidden"
+              className="rounded-3xl border border-[#3D2331]/20 bg-[#251520] p-6 shadow-xl overflow-hidden"
             >
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
-                <span className="font-mono text-xs font-bold text-slate-400">
+                <span className="font-mono text-xs font-bold text-[#EADBCE]">
                   APEX Internal State Inspector
                 </span>
-                <span className="text-xs text-slate-500">FastAPI SQLite Model</span>
+                <span className="text-xs text-[#7E6875]">FastAPI SQLite Model</span>
               </div>
-              <pre className="overflow-x-auto p-4 rounded-xl bg-black/40 font-mono text-xs text-emerald-400 leading-relaxed">
+              <pre className="overflow-x-auto p-4 rounded-xl bg-black/30 font-mono text-xs text-[#087F5B] leading-relaxed">
                 {JSON.stringify(task, null, 2)}
               </pre>
             </motion.div>

@@ -25,35 +25,35 @@ const NODES = [
     label: "Supervisor",
     desc: "Goal Decomposition & Routing",
     icon: Sparkles,
-    color: "from-blue-500 to-indigo-500",
+    color: "from-[#3D2331] to-[#523143]",
   },
   {
     id: "planner",
     label: "Planner",
     desc: "Strategy Formulation",
     icon: GitFork,
-    color: "from-amber-500 to-orange-500",
+    color: "from-[#D49520] to-[#F4B942]",
   },
   {
     id: "researcher",
     label: "Researcher",
     desc: "Web Intelligence & Search",
     icon: Globe,
-    color: "from-purple-500 to-fuchsia-500",
+    color: "from-[#087F5B] to-[#20C997]",
   },
   {
     id: "executor",
     label: "Executor",
     desc: "Sandbox Runtime Execution",
     icon: Terminal,
-    color: "from-emerald-500 to-teal-500",
+    color: "from-[#066649] to-[#087F5B]",
   },
   {
     id: "reflector",
     label: "Reflector",
     desc: "Self-Critique & Validation",
     icon: RotateCcw,
-    color: "from-rose-500 to-pink-500",
+    color: "from-[#E76F51] to-[#F4A261]",
   },
 ];
 
@@ -71,26 +71,26 @@ export default function PipelineStepper({
   const activeIndex = NODES.findIndex((n) => n.id === activeNodeId);
 
   return (
-    <div className="w-full rounded-2xl border border-white/10 bg-[#0d1424]/80 backdrop-blur-md p-6 shadow-xl mb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
+    <div className="w-full rounded-2xl border border-[#EADBCE] bg-white/80 backdrop-blur-md p-6 shadow-sm mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-[#EADBCE]/80 pb-4">
         <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-[#3D2331] flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
               {!isCompleted && !isFailed && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#087F5B] opacity-75"></span>
               )}
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isCompleted ? "bg-emerald-400" : isFailed ? "bg-rose-500" : "bg-indigo-400"}`}></span>
+              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isCompleted ? "bg-[#087F5B]" : isFailed ? "bg-[#E76F51]" : "bg-[#F4B942]"}`}></span>
             </span>
             Cognitive Pipeline Architecture
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            5-Stage Multi-Agent Orchestration with Automated Self-Correction
+          <p className="text-xs text-[#59414E] mt-0.5">
+            5-Stage Autonomous Multi-Agent Orchestration with Automated Self-Correction
           </p>
         </div>
 
         {reflectionCount > 0 && (
-          <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-950/40 px-3 py-1 text-xs font-semibold text-purple-300">
-            <RotateCcw size={12} className="animate-spin text-purple-400" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#E76F51]/30 bg-[#E76F51]/10 px-3 py-1 text-xs font-semibold text-[#C84F33]">
+            <RotateCcw size={12} className="animate-spin text-[#E76F51]" />
             <span>Self-Healing Loops: {reflectionCount}</span>
           </div>
         )}
@@ -112,53 +112,53 @@ export default function PipelineStepper({
               transition={{ delay: index * 0.08 }}
               className={`relative flex flex-col items-center text-center p-4 rounded-xl border transition-all ${
                 isNodeFailed
-                  ? "border-rose-500/50 bg-rose-950/20 shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30 text-rose-300"
+                  ? "border-[#E76F51]/50 bg-[#E76F51]/10 text-[#C84F33]"
                   : isActive
-                  ? "border-indigo-400/80 bg-indigo-950/30 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-400/50"
+                  ? "border-[#087F5B] bg-[#087F5B]/10 shadow-md shadow-[#087F5B]/10 ring-2 ring-[#087F5B]/20 text-[#3D2331]"
                   : isPassed
-                  ? "border-emerald-500/30 bg-emerald-950/10 text-slate-300"
-                  : "border-white/5 bg-white/[0.02] text-slate-500"
+                  ? "border-[#087F5B]/30 bg-[#087F5B]/5 text-[#3D2331]"
+                  : "border-[#EADBCE] bg-[#F7F3E8]/40 text-[#7E6875]"
               }`}
             >
               {/* Node Icon Box */}
               <div
                 className={`relative mb-3 flex h-12 w-12 items-center justify-center rounded-xl transition-transform ${
                   isNodeFailed
-                    ? "bg-rose-500/20 text-rose-400 border border-rose-500/40 scale-105"
+                    ? "bg-[#E76F51]/20 text-[#E76F51] border border-[#E76F51]/40 scale-105"
                     : isActive
-                    ? "bg-gradient-to-br " + node.color + " text-white shadow-md shadow-indigo-500/30 scale-105"
+                    ? "bg-gradient-to-br " + node.color + " text-white shadow-md shadow-[#087F5B]/20 scale-105"
                     : isPassed
-                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                    : "bg-slate-800/80 text-slate-400 border border-white/5"
+                    ? "bg-[#087F5B]/15 text-[#087F5B] border border-[#087F5B]/30"
+                    : "bg-white text-[#7E6875] border border-[#EADBCE]"
                 }`}
               >
                 {isNodeFailed ? (
-                  <AlertCircle size={22} className="text-rose-400" />
+                  <AlertCircle size={22} className="text-[#E76F51]" />
                 ) : isActive ? (
-                  <Loader2 size={22} className="animate-spin" />
+                  <Loader2 size={22} className="animate-spin text-white" />
                 ) : isPassed ? (
-                  <CheckCircle2 size={22} className="text-emerald-400" />
+                  <CheckCircle2 size={22} className="text-[#087F5B]" />
                 ) : (
                   <Icon size={20} />
                 )}
               </div>
 
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              <div className="text-xs font-bold uppercase tracking-wider text-[#3D2331]">
                 {node.label}
               </div>
 
-              <div className="text-[11px] text-slate-400 mt-1 line-clamp-1">
+              <div className="text-[11px] text-[#59414E] mt-1 line-clamp-1">
                 {isParallelActive ? "Concurrent Parallel Execution" : node.desc}
               </div>
 
               {isNodeFailed && (
-                <span className="mt-2 text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                <span className="mt-2 text-[10px] font-bold text-[#C84F33] bg-[#E76F51]/15 px-2 py-0.5 rounded-full border border-[#E76F51]/30">
                   FAILED
                 </span>
               )}
 
               {isActive && (
-                <span className="mt-2 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 animate-pulse">
+                <span className="mt-2 text-[10px] font-bold text-[#066649] bg-[#087F5B]/15 px-2 py-0.5 rounded-full border border-[#087F5B]/30 animate-pulse">
                   {isParallelActive ? "CONCURRENT" : "EXECUTING"}
                 </span>
               )}

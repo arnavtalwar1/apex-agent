@@ -37,10 +37,10 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
   const flushTable = (key: string) => {
     if (tableHeader.length === 0 && tableRows.length === 0) return;
     elements.push(
-      <div key={key} className="my-6 w-full overflow-x-auto rounded-xl border border-white/10 bg-[#0d1424] shadow-lg">
-        <table className="w-full text-left text-sm text-slate-300">
+      <div key={key} className="my-6 w-full overflow-x-auto rounded-2xl border border-[#EADBCE] bg-white shadow-xs">
+        <table className="w-full text-left text-sm text-[#3D2331]">
           {tableHeader.length > 0 && (
-            <thead className="border-b border-white/10 bg-white/5 text-xs font-semibold uppercase tracking-wider text-slate-200">
+            <thead className="border-b border-[#EADBCE] bg-[#F7F3E8] text-xs font-bold uppercase tracking-wider text-[#3D2331]">
               <tr>
                 {tableHeader.map((th, idx) => (
                   <th key={idx} className="px-5 py-3.5 font-bold">
@@ -50,11 +50,11 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
               </tr>
             </thead>
           )}
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-[#EADBCE]/60">
             {tableRows.map((row, rIdx) => (
-              <tr key={rIdx} className="hover:bg-white/[0.03] transition-colors">
+              <tr key={rIdx} className="hover:bg-[#F7F3E8]/40 transition-colors">
                 {row.map((cell, cIdx) => (
-                  <td key={cIdx} className="px-5 py-3 text-slate-300">
+                  <td key={cIdx} className="px-5 py-3.5 text-[#3D2331]">
                     {parseInline(cell)}
                   </td>
                 ))}
@@ -118,7 +118,7 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
     // Headings
     if (line.startsWith("#### ")) {
       elements.push(
-        <h4 key={`h4-${i}`} className="mt-5 mb-2 text-base font-semibold text-slate-200">
+        <h4 key={`h4-${i}`} className="mt-5 mb-2 text-base font-bold text-[#3D2331]">
           {parseInline(line.slice(5))}
         </h4>
       );
@@ -126,8 +126,8 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
     }
     if (line.startsWith("### ")) {
       elements.push(
-        <h3 key={`h3-${i}`} className="mt-6 mb-3 text-lg font-bold text-indigo-300 flex items-center gap-2">
-          <span className="w-1.5 h-4 bg-indigo-500 rounded-full inline-block"></span>
+        <h3 key={`h3-${i}`} className="mt-6 mb-3 text-lg font-extrabold text-[#3D2331] flex items-center gap-2">
+          <span className="w-1.5 h-4 bg-[#087F5B] rounded-full inline-block"></span>
           {parseInline(line.slice(4))}
         </h3>
       );
@@ -135,7 +135,7 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
     }
     if (line.startsWith("## ")) {
       elements.push(
-        <h2 key={`h2-${i}`} className="mt-8 mb-4 text-xl font-bold text-white tracking-tight border-b border-white/10 pb-2 flex items-center gap-2">
+        <h2 key={`h2-${i}`} className="mt-8 mb-4 text-xl font-extrabold text-[#3D2331] tracking-tight border-b border-[#EADBCE] pb-2 flex items-center gap-2">
           {parseInline(line.slice(3))}
         </h2>
       );
@@ -143,7 +143,7 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
     }
     if (line.startsWith("# ")) {
       elements.push(
-        <h1 key={`h1-${i}`} className="mt-8 mb-4 text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-indigo-400">
+        <h1 key={`h1-${i}`} className="mt-8 mb-4 text-2xl font-black text-[#3D2331] tracking-tight">
           {parseInline(line.slice(2))}
         </h1>
       );
@@ -152,14 +152,14 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
 
     // Horizontal Rule
     if (/^(\*\*\*|---|___)$/.test(trimmed)) {
-      elements.push(<hr key={`hr-${i}`} className="my-6 border-white/10" />);
+      elements.push(<hr key={`hr-${i}`} className="my-6 border-[#EADBCE]" />);
       continue;
     }
 
     // Blockquote
     if (line.startsWith("> ")) {
       elements.push(
-        <blockquote key={`bq-${i}`} className="my-4 border-l-4 border-indigo-500 bg-indigo-950/20 pl-4 py-2 italic text-slate-300 rounded-r-lg">
+        <blockquote key={`bq-${i}`} className="my-4 border-l-4 border-[#087F5B] bg-[#F7F3E8] pl-4 py-2.5 italic text-[#59414E] rounded-r-xl">
           {parseInline(line.slice(2))}
         </blockquote>
       );
@@ -170,8 +170,8 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
     if (line.startsWith("- ") || line.startsWith("* ")) {
       elements.push(
         <div key={`li-${i}`} className="my-1.5 flex items-start gap-3 pl-2">
-          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
-          <span className="text-slate-300 leading-relaxed text-sm">{parseInline(line.slice(2))}</span>
+          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#087F5B]" />
+          <span className="text-[#3D2331] leading-relaxed text-sm">{parseInline(line.slice(2))}</span>
         </div>
       );
       continue;
@@ -182,10 +182,10 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
     if (matchOrdered) {
       elements.push(
         <div key={`oli-${i}`} className="my-1.5 flex items-start gap-3 pl-2">
-          <span className="font-mono text-xs font-bold text-indigo-400 shrink-0 mt-0.5">
+          <span className="font-mono text-xs font-bold text-[#087F5B] shrink-0 mt-0.5">
             {matchOrdered[1]}.
           </span>
-          <span className="text-slate-300 leading-relaxed text-sm">{parseInline(matchOrdered[2])}</span>
+          <span className="text-[#3D2331] leading-relaxed text-sm">{parseInline(matchOrdered[2])}</span>
         </div>
       );
       continue;
@@ -199,7 +199,7 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
 
     // Standard paragraph
     elements.push(
-      <p key={`p-${i}`} className="my-2 text-sm leading-relaxed text-slate-300">
+      <p key={`p-${i}`} className="my-2.5 text-sm leading-relaxed text-[#3D2331]">
         {parseInline(line)}
       </p>
     );
@@ -221,7 +221,7 @@ function parseInline(text: string): React.ReactNode {
       return (
         <code
           key={idx}
-          className="rounded-md bg-indigo-950/70 border border-indigo-500/30 px-1.5 py-0.5 font-mono text-xs text-indigo-300 font-semibold"
+          className="rounded-md bg-[#F7F3E8] border border-[#EADBCE] px-1.5 py-0.5 font-mono text-xs text-[#087F5B] font-semibold"
         >
           {part.slice(1, -1)}
         </code>
@@ -235,7 +235,7 @@ function parseInline(text: string): React.ReactNode {
         {boldParts.map((bPart, bIdx) => {
           if (bPart.startsWith("**") && bPart.endsWith("**")) {
             return (
-              <strong key={bIdx} className="font-semibold text-white">
+              <strong key={bIdx} className="font-bold text-[#3D2331]">
                 {bPart.slice(2, -2)}
               </strong>
             );
@@ -261,11 +261,11 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
   };
 
   return (
-    <div className="my-5 overflow-hidden rounded-xl border border-white/10 bg-[#080d1a] shadow-xl">
+    <div className="my-5 overflow-hidden rounded-2xl border border-[#3D2331]/20 bg-[#251520] shadow-xl text-white">
       <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <Terminal size={14} className="text-indigo-400" />
-          <span className="font-mono text-xs font-semibold uppercase text-slate-400">
+          <Terminal size={14} className="text-[#F4B942]" />
+          <span className="font-mono text-xs font-semibold uppercase text-[#EADBCE]">
             {language || "code"}
           </span>
         </div>
@@ -273,12 +273,12 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
           type="button"
           aria-label="Copy code to clipboard"
           onClick={handleCopy}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-[#EADBCE] hover:bg-white/10 hover:text-white transition-colors"
         >
           {copied ? (
             <>
-              <Check size={14} className="text-emerald-400" />
-              <span className="text-emerald-400">Copied</span>
+              <Check size={14} className="text-[#087F5B]" />
+              <span className="text-[#087F5B]">Copied</span>
             </>
           ) : (
             <>
@@ -288,7 +288,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
           )}
         </button>
       </div>
-      <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-slate-200">
+      <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-[#F7F3E8]">
         <code>{code}</code>
       </pre>
     </div>
