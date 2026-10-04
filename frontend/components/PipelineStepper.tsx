@@ -100,7 +100,8 @@ export default function PipelineStepper({
         {NODES.map((node, index) => {
           const Icon = node.icon;
           const isParallelActive = activeNodeId === "parallel" && (node.id === "planner" || node.id === "researcher");
-          const isNodeFailed = isFailed && (activeNodeId === node.id || (activeIndex === -1 && index === 0));
+          const targetFailedId = activeIndex > -1 ? activeNodeId : (NODES.some((n) => n.id === activeNodeId) ? activeNodeId : "executor");
+          const isNodeFailed = isFailed && node.id === targetFailedId;
           const isActive = (activeNodeId === node.id || isParallelActive) && !isCompleted && !isFailed;
           const isPassed = isCompleted || (activeIndex > -1 && index < activeIndex);
 

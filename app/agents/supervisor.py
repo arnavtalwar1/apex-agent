@@ -50,13 +50,15 @@ def supervisor_node(state: AgentState) -> dict[str, Any]:
 	execution_mode = state.get("execution_mode", "").lower()
 
 
+	is_exec_failed = bool(exec_res and (exec_res.startswith("FAILED") or exec_res.startswith("EXCEPTION") or exec_res.startswith("Answer generation failed")))
+
 	# 1. Deterministic guard: If execution already succeeded without errors, immediately terminate without looping (0 tokens)
-	if exec_res and not error:
+	if exec_res and not error and not is_exec_failed:
 		state["next_node"] = "FINISH"
 		return {"next_node": "FINISH"}
 
 	# 2. Deterministic guard: If execution failed with an unaddressed error, route to REFLECTOR (0 tokens)
-	if error and iteration_count < settings.MAX_ITERATIONS:
+	if (error or is_exec_failed) and iteration_count < settings.MAX_ITERATIONS:
 		state["next_node"] = "REFLECTOR"
 		return {"next_node": "REFLECTOR"}
 

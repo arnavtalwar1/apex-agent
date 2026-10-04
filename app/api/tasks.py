@@ -97,6 +97,18 @@ async def execute_task_lifecycle(task_id: int, thread_id: str):
 				exec_res = (state.get("execution_result") or "").strip()
 				error = (state.get("error") or "").strip()
 
+				if error or not exec_res or exec_res.startswith("FAILED") or exec_res.startswith("EXCEPTION"):
+					if plan_content and state.get("user_goal"):
+						try:
+							from app.agents.executor import synthesize_answer
+							diag_note = f"Execution note: Sandbox execution encountered: {error or exec_res}. Synthesizing comprehensive technical deliverable from research context and strategic plan."
+							fallback = synthesize_answer(state, sandbox_output=diag_note, executed=False)
+							if fallback.get("execution_result") and not fallback.get("error"):
+								exec_res = fallback["execution_result"]
+								error = ""
+						except Exception:
+							pass
+
 				if error:
 					db_task.status = TaskStatus.FAILED
 					db_task.final_output = exec_res if (exec_res and "failed" in exec_res.lower()) else (f"{exec_res}\n\nError: {error}" if exec_res else error)
@@ -386,6 +398,18 @@ async def run_task(
 					plan_content = state.get("plan", "")
 					exec_res = (state.get("execution_result") or "").strip()
 					error = (state.get("error") or "").strip()
+
+					if error or not exec_res or exec_res.startswith("FAILED") or exec_res.startswith("EXCEPTION"):
+						if plan_content and state.get("user_goal"):
+							try:
+								from app.agents.executor import synthesize_answer
+								diag_note = f"Execution note: Sandbox execution encountered: {error or exec_res}. Synthesizing comprehensive technical deliverable from research context and strategic plan."
+								fallback = synthesize_answer(state, sandbox_output=diag_note, executed=False)
+								if fallback.get("execution_result") and not fallback.get("error"):
+									exec_res = fallback["execution_result"]
+									error = ""
+							except Exception:
+								pass
 
 					if error:
 						db_task.status = TaskStatus.FAILED

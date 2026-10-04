@@ -78,27 +78,68 @@ def parse_supervisor_decision(
 def parse_reflection_output(content: Any) -> ReflectionOutput:
     """
     Parses reflection LLM output into a validated ReflectionOutput model.
-    Supports both structured format and legacy CRITIQUE / CORRECTED_PLAN markers.
+    Supports structured JSON, flexible markdown headers (bold/headings/case-insensitive),
+    and code block fallback extraction.
     """
     if isinstance(content, ReflectionOutput):
         return content
 
+    if isinstance(content, dict):
+        critique = content.get("critique") or content.get("root_cause") or "Analysis complete."
+        plan = content.get("corrected_plan") or content.get("corrected_strategy") or content.get("plan") or ""
+        return ReflectionOutput(
+            critique=critique,
+            root_cause=content.get("root_cause", ""),
+            corrected_plan=plan,
+            should_retry=bool(plan),
+        )
+
     text = str(content.content if hasattr(content, "content") else content).strip()
+
+    # 1. Try JSON extraction
+    json_match = re.search(r"\{.*\}", text, re.DOTALL)
+    if json_match:
+        try:
+            data = json.loads(json_match.group(0))
+            if isinstance(data, dict) and ("critique" in data or "corrected_plan" in data or "corrected_strategy" in data):
+                critique = data.get("critique") or data.get("root_cause") or "Analysis complete."
+                plan = data.get("corrected_plan") or data.get("corrected_strategy") or data.get("plan") or ""
+                return ReflectionOutput(
+                    critique=critique,
+                    root_cause=data.get("root_cause", ""),
+                    corrected_plan=plan,
+                    should_retry=bool(plan),
+                )
+        except Exception:
+            pass
+
+    # 2. Flexible header splitting with regex (case-insensitive, handles **, ##, spaces, underscores, colons)
+    plan_header_pattern = r"(?i)(?:^|\n)[ \t]*(?:\*{0,2}#{0,4}[ \t]*)?(?:CORRECTED[_\s]+PLAN|CORRECTED[_\s]+STRATEGY|UPDATED[_\s]+PLAN|CORRECTED[_\s]+CODE)\s*[:#-]*[ \t]*(?:\*{0,2})"
+    critique_header_pattern = r"(?i)(?:^|\n)[ \t]*(?:\*{0,2}#{0,4}[ \t]*)?CRITIQUE\s*[:#-]*[ \t]*(?:\*{0,2})"
 
     critique = text
     corrected_plan = ""
     root_cause = ""
 
-    if "CORRECTED_PLAN:" in text:
-        parts = text.split("CORRECTED_PLAN:", 1)
-        critique_part = parts[0]
-        corrected_plan = parts[1].strip()
-        if "CRITIQUE:" in critique_part:
-            critique = critique_part.split("CRITIQUE:", 1)[1].strip()
+    plan_match = re.search(plan_header_pattern, text)
+    if plan_match:
+        critique_part = text[:plan_match.start()].strip()
+        corrected_plan = text[plan_match.end():].strip()
+        critique_m = re.search(critique_header_pattern, critique_part)
+        if critique_m:
+            critique = critique_part[critique_m.end():].strip()
         else:
             critique = critique_part.strip()
-    elif "CRITIQUE:" in text:
-        critique = text.split("CRITIQUE:", 1)[1].strip()
+    else:
+        critique_m = re.search(critique_header_pattern, text)
+        if critique_m:
+            critique = text[critique_m.end():].strip()
+
+    # 3. Fallback: if no separate plan header was found, but a Python code block exists, use it
+    if not corrected_plan:
+        py_match = re.search(r"```(?:python|py)\b[^\r\n]*[\r\n]+(.*?)```", text, re.DOTALL | re.IGNORECASE)
+        if py_match:
+            corrected_plan = text
 
     return ReflectionOutput(
         critique=critique or "Analysis complete.",

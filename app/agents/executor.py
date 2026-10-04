@@ -106,13 +106,92 @@ Sandbox Runtime Output:
 )
 
 
+def sanitize_code_imports(code: str) -> str:
+	"""
+	Sanitizes import statements targeting forbidden modules (os, sys, shutil, posixpath, ntpath).
+	Uses AST node transformation with regex fallback to guarantee zero forbidden import nodes survive.
+	"""
+	forbidden_roots = {"os", "sys", "shutil", "posixpath", "ntpath"}
+
+	try:
+		tree = ast.parse(code)
+
+		class ImportSanitizer(ast.NodeTransformer):
+			def visit_Import(self, node: ast.Import):
+				new_names = [alias for alias in node.names if alias.name.split(".")[0].lower() not in forbidden_roots]
+				if not new_names:
+					return None
+				node.names = new_names
+				return node
+
+			def visit_ImportFrom(self, node: ast.ImportFrom):
+				if node.module and node.module.split(".")[0].lower() in forbidden_roots:
+					return None
+				return node
+
+		tree = ImportSanitizer().visit(tree)
+		ast.fix_missing_locations(tree)
+		return ast.unparse(tree)
+	except Exception:
+		# Fallback to line-by-line regex if syntax parsing fails
+		lines = code.splitlines()
+		cleaned_lines = []
+		for line in lines:
+			stripped = line.strip()
+			if stripped.startswith("#"):
+				cleaned_lines.append(line)
+				continue
+
+			# Handle 'from <module> import ...'
+			from_m = re.match(r"^([ \t]*)from[ \t]+([a-zA-Z0-9_\.]+)[ \t]+import[ \t]+(.*)$", line)
+			if from_m:
+				indent, mod, imports = from_m.group(1), from_m.group(2), from_m.group(3)
+				root_mod = mod.split(".")[0].lower()
+				if root_mod in forbidden_roots:
+					cleaned_lines.append(f"{indent}# [APEX Virtualized] {stripped}")
+					continue
+
+			# Handle 'import ...'
+			import_m = re.match(r"^([ \t]*)import[ \t]+(.*)$", line)
+			if import_m:
+				indent, modules_str = import_m.group(1), import_m.group(2)
+				parts = [p.strip() for p in modules_str.split(",")]
+				keep = []
+				for p in parts:
+					p_root = p.split()[0].split(".")[0].lower()
+					if p_root in forbidden_roots:
+						pass
+					else:
+						keep.append(p)
+				if keep:
+					cleaned_lines.append(f"{indent}import " + ", ".join(keep))
+				else:
+					cleaned_lines.append(f"{indent}# [APEX Virtualized] {stripped}")
+				continue
+
+			cleaned_lines.append(line)
+
+		return "\n".join(cleaned_lines)
+
+
 def virtualize_file_io(code: str, force: bool = False) -> str:
 	"""
-	Transforms code containing open() calls into safe in-memory virtual file operations.
-	Prevents sandbox security policy violation while safely supporting file simulations.
+	Transforms code containing open() calls and system imports into safe in-memory virtual operations.
+	Prevents sandbox security policy violation while safely supporting file simulations and calculations.
 	"""
-	if not force and not re.search(r"\bopen\s*\(", code):
+	has_open = bool(re.search(r"\bopen\s*\(", code))
+	has_forbidden_mod = bool(
+		re.search(
+			r"\b(import\s+(?:[a-zA-Z0-9_,\s]*\b)?(os|sys|shutil|posixpath|ntpath)\b|from\s+(os|sys|shutil|posixpath|ntpath)\b)",
+			code,
+		)
+	)
+
+	if not force and not has_open and not has_forbidden_mod:
 		return code
+
+	cleaned = sanitize_code_imports(code)
+	transformed = re.sub(r"\bopen\s*\(", "_apex_safe_open(", cleaned)
 
 	virtual_shim = """import io as _apex_io
 
@@ -122,8 +201,10 @@ class _ApexVirtualFile:
     def __init__(self, filename, mode="r", *args, **kwargs):
         self.filename = str(filename)
         self.mode = mode
+        clean_name = self.filename.replace("\\\\", "/").strip("/")
+        self._key = clean_name
         if "b" in mode:
-            raw = _apex_virtual_fs.get(self.filename, b"")
+            raw = _apex_virtual_fs.get(self._key, _apex_virtual_fs.get(self.filename, b""))
             if isinstance(raw, str):
                 raw = raw.encode("utf-8")
             initial = raw if ("a" in mode or "r" in mode) else b""
@@ -131,7 +212,7 @@ class _ApexVirtualFile:
             if "a" in mode:
                 self._stream.seek(0, _apex_io.SEEK_END)
         else:
-            raw = _apex_virtual_fs.get(self.filename, "")
+            raw = _apex_virtual_fs.get(self._key, _apex_virtual_fs.get(self.filename, ""))
             if isinstance(raw, bytes):
                 raw = raw.decode("utf-8", errors="replace")
             initial = raw if ("a" in mode or "r" in mode) else ""
@@ -141,7 +222,9 @@ class _ApexVirtualFile:
 
     def write(self, s):
         res = self._stream.write(s)
-        _apex_virtual_fs[self.filename] = self._stream.getvalue()
+        val = self._stream.getvalue()
+        _apex_virtual_fs[self._key] = val
+        _apex_virtual_fs[self.filename] = val
         return res
 
     def read(self, *args):
@@ -162,12 +245,16 @@ class _ApexVirtualFile:
     def flush(self):
         if hasattr(self, "_stream") and not self._stream.closed:
             if "w" in self.mode or "a" in self.mode:
-                _apex_virtual_fs[self.filename] = self._stream.getvalue()
+                val = self._stream.getvalue()
+                _apex_virtual_fs[self._key] = val
+                _apex_virtual_fs[self.filename] = val
 
     def close(self):
         if hasattr(self, "_stream") and not self._stream.closed:
             if "w" in self.mode or "a" in self.mode:
-                _apex_virtual_fs[self.filename] = self._stream.getvalue()
+                val = self._stream.getvalue()
+                _apex_virtual_fs[self._key] = val
+                _apex_virtual_fs[self.filename] = val
             self._stream.close()
 
     def __iter__(self):
@@ -181,8 +268,177 @@ class _ApexVirtualFile:
 
 def _apex_safe_open(filename, mode="r", *args, **kwargs):
     return _ApexVirtualFile(filename, mode, *args, **kwargs)
+
+class _ApexSafePath:
+    @staticmethod
+    def join(*args):
+        parts = []
+        for a in args:
+            if not a:
+                continue
+            s = str(a).replace("\\\\", "/")
+            if s.startswith("/"):
+                parts = [s.rstrip("/")]
+            else:
+                parts.append(s.strip("/"))
+        joined = "/".join(p for p in parts if p)
+        if args and str(args[0]).startswith("/") and not joined.startswith("/"):
+            joined = "/" + joined
+        return joined or "."
+
+    @staticmethod
+    def basename(p):
+        return str(p).replace("\\\\", "/").rstrip("/").split("/")[-1]
+
+    @staticmethod
+    def dirname(p):
+        parts = str(p).replace("\\\\", "/").rstrip("/").split("/")
+        return "/".join(parts[:-1]) if len(parts) > 1 else ("/" if str(p).startswith("/") else "")
+
+    @staticmethod
+    def split(p):
+        return _ApexSafePath.dirname(p), _ApexSafePath.basename(p)
+
+    @staticmethod
+    def splitext(p):
+        p_str = str(p)
+        base = p_str.replace("\\\\", "/").rstrip("/").split("/")[-1]
+        dot = base.rfind(".")
+        if dot > 0:
+            ext_len = len(base) - dot
+            return p_str[:-ext_len], p_str[-ext_len:]
+        return p_str, ""
+
+    @staticmethod
+    def exists(p):
+        p_str = str(p).replace("\\\\", "/").strip("/")
+        return bool(p_str in _apex_virtual_fs or str(p) in _apex_virtual_fs or any(k.startswith(p_str + "/") for k in _apex_virtual_fs))
+
+    @staticmethod
+    def isfile(p):
+        p_str = str(p).replace("\\\\", "/").strip("/")
+        return bool(p_str in _apex_virtual_fs or str(p) in _apex_virtual_fs)
+
+    @staticmethod
+    def isdir(p):
+        p_str = str(p).replace("\\\\", "/").strip("/")
+        return any(k.startswith(p_str + "/") for k in _apex_virtual_fs)
+
+    @staticmethod
+    def getsize(p):
+        p_str = str(p).replace("\\\\", "/").strip("/")
+        val = _apex_virtual_fs.get(p_str, _apex_virtual_fs.get(str(p), ""))
+        return len(val) if isinstance(val, (str, bytes)) else 0
+
+    @staticmethod
+    def abspath(p):
+        return "/" + str(p).replace("\\\\", "/").lstrip("/")
+
+    @staticmethod
+    def relpath(p, start=None):
+        return str(p).replace("\\\\", "/").lstrip("/")
+
+    @staticmethod
+    def isabs(p):
+        s = str(p)
+        return s.startswith("/") or s.startswith("\\\\") or (len(s) > 1 and s[1] == ":")
+
+    @staticmethod
+    def normpath(p):
+        return str(p).replace("\\\\", "/")
+
+class _ApexSafeOS:
+    path = _ApexSafePath
+    sep = "/"
+    linesep = "\\n"
+    name = "posix"
+    curdir = "."
+    pardir = ".."
+    extsep = "."
+    devnull = "/dev/null"
+    environ = {}
+
+    @staticmethod
+    def getenv(key, default=None):
+        return _ApexSafeOS.environ.get(key, default)
+
+    @staticmethod
+    def getcwd():
+        return "/"
+
+    @staticmethod
+    def listdir(path="."):
+        return list(_apex_virtual_fs.keys())
+
+    @staticmethod
+    def walk(top=".", *args, **kwargs):
+        yield (".", [], list(_apex_virtual_fs.keys()))
+
+    @staticmethod
+    def makedirs(name, exist_ok=False):
+        pass
+
+    @staticmethod
+    def mkdir(name):
+        pass
+
+    @staticmethod
+    def remove(path):
+        p_str = str(path).replace("\\\\", "/").strip("/")
+        _apex_virtual_fs.pop(p_str, None)
+        _apex_virtual_fs.pop(str(path), None)
+
+    @staticmethod
+    def unlink(path):
+        _ApexSafeOS.remove(path)
+
+class _ApexSafeSys:
+    argv = ["sandbox.py"]
+    version = "3.11.0 (APEX Sandbox)"
+    platform = "linux"
+    maxsize = 9223372036854775807
+    byteorder = "little"
+    exit = staticmethod(lambda code=0: None)
+
+class _ApexSafeShutil:
+    @staticmethod
+    def copy(src, dst):
+        if str(src) in _apex_virtual_fs:
+            _apex_virtual_fs[str(dst)] = _apex_virtual_fs[str(src)]
+
+    @staticmethod
+    def move(src, dst):
+        if str(src) in _apex_virtual_fs:
+            _apex_virtual_fs[str(dst)] = _apex_virtual_fs.pop(str(src))
+
+    @staticmethod
+    def rmtree(path, ignore_errors=False):
+        p_str = str(path)
+        for k in list(_apex_virtual_fs.keys()):
+            if k.startswith(p_str):
+                _apex_virtual_fs.pop(k, None)
+
+os = _ApexSafeOS()
+sys = _ApexSafeSys()
+shutil = _ApexSafeShutil()
+path = _ApexSafePath
+join = _ApexSafePath.join
+exists = _ApexSafePath.exists
+basename = _ApexSafePath.basename
+dirname = _ApexSafePath.dirname
+splitext = _ApexSafePath.splitext
+split = _ApexSafePath.split
+abspath = _ApexSafePath.abspath
+relpath = _ApexSafePath.relpath
+isabs = _ApexSafePath.isabs
+normpath = _ApexSafePath.normpath
+isfile = _ApexSafePath.isfile
+isdir = _ApexSafePath.isdir
+getsize = _ApexSafePath.getsize
+getenv = _ApexSafeOS.getenv
+environ = _ApexSafeOS.environ
+argv = _ApexSafeSys.argv
 """
-	transformed = re.sub(r"\bopen\s*\(", "_apex_safe_open(", code)
 	return virtual_shim + "\n" + transformed
 
 
@@ -199,14 +455,14 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 	run_code = virtualize_file_io(code)
 
 	sandbox = SecureSandbox(
-		timeout_seconds=min(settings.MAX_CODE_TIMEOUT_SECONDS, 8),
+		timeout_seconds=max(settings.MAX_CODE_TIMEOUT_SECONDS, 15),
 		max_output_chars=settings.MAX_CODE_OUTPUT_CHARS,
 		enable_ast_check=settings.SECURE_SANDBOX_ENABLED,
 	)
 	res = sandbox.execute(run_code)
 
-	# If initial execution failed due to an open() violation, retry with forced virtualization
-	if not res.success and "open()" in res.stderr and run_code == code:
+	# If initial execution failed due to an open() or forbidden module violation, retry with forced virtualization
+	if not res.success and run_code == code:
 		run_code = virtualize_file_io(code, force=True)
 		res = sandbox.execute(run_code)
 

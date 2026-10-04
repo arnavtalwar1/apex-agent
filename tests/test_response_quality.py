@@ -159,3 +159,34 @@ def test_executor_synthesizes_on_final_iteration_after_failed_code():
         res = executor_node(state)
     assert "Comprehensive Repository Analysis Report" in res["execution_result"]
     assert res["error"] == ""
+
+
+def test_virtualize_file_io_sanitizes_os_and_sys_imports():
+    from app.agents.executor import virtualize_file_io
+    from app.core.sandbox import SecureSandbox, analyze_code_security
+
+    code = """import os
+import sys
+from os.path import join, exists
+
+path = join("folder", "sub", "file.json")
+with open("test.txt", "w") as f:
+    f.write("APEX")
+
+print("PATH:", path)
+print("EXISTS:", exists("test.txt"))
+print("SYS_ARGV:", len(sys.argv) > 0)
+"""
+    transformed = virtualize_file_io(code)
+    is_safe, violations = analyze_code_security(transformed)
+    assert is_safe is True
+    assert len(violations) == 0
+
+    sandbox = SecureSandbox(timeout_seconds=5)
+    res = sandbox.execute(transformed)
+    assert res.success is True
+    assert res.exit_code == 0
+    assert "PATH: folder/sub/file.json" in res.stdout
+    assert "EXISTS: True" in res.stdout
+    assert "SYS_ARGV: True" in res.stdout
+

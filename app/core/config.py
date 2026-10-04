@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
 	# Sandbox & Security
 	SECURE_SANDBOX_ENABLED: bool = True
-	MAX_CODE_TIMEOUT_SECONDS: int = 8
+	MAX_CODE_TIMEOUT_SECONDS: int = 15
 	MAX_CODE_OUTPUT_CHARS: int = 25000
 	REQUIRE_APPROVAL_FOR_CODE_EXECUTION: bool = False
 
