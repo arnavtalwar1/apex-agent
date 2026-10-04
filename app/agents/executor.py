@@ -1,9 +1,5 @@
 import ast
-import os
 import re
-import subprocess
-import sys
-import tempfile
 import textwrap
 from typing import Any
 
@@ -455,7 +451,7 @@ def executor_node(state: AgentState) -> dict[str, Any]:
 	run_code = virtualize_file_io(code)
 
 	sandbox = SecureSandbox(
-		timeout_seconds=max(settings.MAX_CODE_TIMEOUT_SECONDS, 15),
+		timeout_seconds=settings.MAX_CODE_TIMEOUT_SECONDS,
 		max_output_chars=settings.MAX_CODE_OUTPUT_CHARS,
 		enable_ast_check=settings.SECURE_SANDBOX_ENABLED,
 	)

@@ -1,13 +1,21 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class TaskCreate(BaseModel):
-	goal: str
-	title: str | None = None
+	goal: str = Field(min_length=1, max_length=10000)
+	title: str | None = Field(default=None, max_length=200)
 	max_iterations: int = 5
 	requires_approval: bool = False
+
+	@field_validator("goal")
+	@classmethod
+	def validate_goal(cls, value: str) -> str:
+		value = value.strip()
+		if not value:
+			raise ValueError("Task goal cannot be blank")
+		return value
 
 
 class TaskResponse(BaseModel):

@@ -43,7 +43,8 @@ async def test_agentic_happy_path_scenario():
     assert state["next_node"].lower() == "executor"
 
     # 3. Executor runs python code safely
-    state.update(executor_node(state))
+    with patch("langchain_core.runnables.base.RunnableSequence.invoke", return_value=MagicMock(content="Computation verified", response_metadata={})):
+        state.update(executor_node(state))
     assert state["error"] == ""
     assert "120" in state["execution_result"]
 
@@ -101,7 +102,8 @@ async def test_agentic_failure_and_self_healing_recovery():
     assert state["next_node"].lower() == "executor"
 
     # 5. Executor re-runs with corrected code and succeeds!
-    state.update(executor_node(state))
+    with patch("langchain_core.runnables.base.RunnableSequence.invoke", return_value=MagicMock(content="Computation verified", response_metadata={})):
+        state.update(executor_node(state))
     assert state["error"] == ""
     assert "5" in state["execution_result"]
 

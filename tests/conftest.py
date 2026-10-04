@@ -41,10 +41,11 @@ settings.OPENAI_API_KEY = "sk-test-dummy-key"
 
 
 @pytest_asyncio.fixture(scope="function")
-async def client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
+async def client(db_session: AsyncSession, monkeypatch) -> AsyncIterator[AsyncClient]:
     async def override_get_db() -> AsyncIterator[AsyncSession]:
         yield db_session
 
+    monkeypatch.setattr("app.api.tasks.AsyncSessionLocal", TestSessionLocal)
     app.dependency_overrides[get_db] = override_get_db
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://localhost") as test_client:
@@ -66,3 +67,23 @@ async def auth_user(db_session: AsyncSession) -> tuple[User, dict[str, str]]:
     token = create_access_token({"sub": str(user.id), "email": user.email})
     headers = {"Authorization": f"Bearer {token}"}
     return user, headers
+
+
+@pytest.fixture(autouse=True)
+def offline_providers(monkeypatch):
+    """Unit tests must never invoke paid providers or public search services."""
+    from langchain_core.runnables import RunnableLambda
+    from langchain_core.messages import AIMessage
+    import app.agents.executor as executor
+    import app.agents.planner as planner
+    import app.agents.reflector as reflector
+    import app.agents.supervisor as supervisor
+
+    def unexpected_inference(_):
+        raise AssertionError("Mock RunnableSequence.invoke before testing LLM output")
+
+    def fake_llm(**kwargs):
+        return RunnableLambda(unexpected_inference)
+
+    for module in (executor, planner, reflector, supervisor):
+        monkeypatch.setattr(module, "get_llm", fake_llm)

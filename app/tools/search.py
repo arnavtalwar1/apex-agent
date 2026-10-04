@@ -36,7 +36,7 @@ def _sync_search_web(query: str, max_results: int = 5) -> list[dict[str, Any]]:
 			for result in results
 		]
 	except Exception as error:
-		return [{"title": f"Context: {query[:40]}", "content": f"Automated intelligence context gathered for {query[:80]}.", "url": ""}]
+		return []
 
 
 async def search_web_async(query: str, max_results: int = 5, timeout_seconds: float = 3.5) -> list[dict[str, Any]]:

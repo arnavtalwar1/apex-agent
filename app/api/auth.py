@@ -1,12 +1,11 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.core.security import (
 	create_access_token,
 	create_refresh_token,
@@ -52,7 +51,7 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)) 
 async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)) -> TokenResponse:
 	result = await db.execute(select(User).where(User.email == user_data.email))
 	user = result.scalar_one_or_none()
-	if not user or not verify_password(user_data.password, user.hashed_password):
+	if not user or not user.is_active or not verify_password(user_data.password, user.hashed_password):
 		raise HTTPException(status_code=401, detail="Invalid credentials")
 
 	user_claims = {"sub": str(user.id), "email": user.email}
@@ -71,7 +70,11 @@ async def refresh_access_token(
 	if not user_id:
 		raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-	result = await db.execute(select(User).where(User.id == int(user_id)))
+	try:
+		user_id = int(user_id)
+	except (ValueError, TypeError) as exc:
+		raise HTTPException(status_code=401, detail="Invalid refresh token") from exc
+	result = await db.execute(select(User).where(User.id == user_id))
 	user = result.scalar_one_or_none()
 	if not user or not user.is_active:
 		raise HTTPException(status_code=401, detail="User account is inactive or not found")
@@ -86,9 +89,15 @@ async def refresh_access_token(
 
 @router.post("/logout", response_model=MessageResponse)
 async def logout(
+	body: RefreshTokenRequest | None = Body(default=None),
 	credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 	current_user: User = Depends(get_current_user),
 ) -> MessageResponse:
+	if body:
+		payload = await decode_token(body.refresh_token, expected_type="refresh")
+		if str(payload.get("sub")) != str(current_user.id):
+			raise HTTPException(status_code=401, detail="Invalid refresh token")
+		revoke_token(body.refresh_token)
 	if credentials and credentials.credentials:
 		revoke_token(credentials.credentials)
 	return MessageResponse(detail="Successfully logged out and session revoked")

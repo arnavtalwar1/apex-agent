@@ -47,43 +47,6 @@ body {
   background-attachment: fixed;
 }
 
-/* Botanical Glassmorphic Utilities */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(61, 35, 49, 0.08);
-  box-shadow: 0 10px 30px -10px rgba(61, 35, 49, 0.05);
-}
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid #EADBCE;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 16px -2px rgba(61, 35, 49, 0.04);
-}
-
-.glass-card:hover {
-  background: #FFFFFF;
-  border-color: rgba(8, 127, 91, 0.4);
-  box-shadow: 0 14px 34px -8px rgba(61, 35, 49, 0.08), 0 0 0 1px rgba(8, 127, 91, 0.15);
-}
-
-.glass-input {
-  background: #FFFFFF;
-  border: 1px solid #EADBCE;
-  color: #3D2331;
-  transition: all 0.2s ease;
-}
-
-.glass-input:focus {
-  border-color: #087F5B;
-  box-shadow: 0 0 0 3px rgba(8, 127, 91, 0.15);
-  outline: none;
-}
-
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
@@ -103,12 +66,13 @@ body {
   background: #087F5B;
 }
 
-/* Pulse animation utility */
-@keyframes subtle-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.9; transform: scale(1.02); }
-}
-
-.animate-subtle-pulse {
-  animation: subtle-pulse 3s infinite ease-in-out;
+button:not(:disabled), a { cursor: pointer; }
+:focus-visible { outline: 3px solid #087F5B; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

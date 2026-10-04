@@ -27,7 +27,8 @@ export default function BrandProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const seen = sessionStorage.getItem("apex_intro_seen");
+      let seen: string | null = null;
+      try { seen = sessionStorage.getItem("apex_intro_seen"); } catch { /* Private browsing may block storage. */ }
       if (seen && !forceShow) {
         setIsIntroPlaying(false);
       } else {

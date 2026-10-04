@@ -13,30 +13,10 @@ from app.core.database import Base, engine
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    try:
-        from sqlalchemy import select, text
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-            # Automatic schema migration for existing PostgreSQL/SQLite deployments
-            new_cols = [
-                ("requires_approval", "BOOLEAN DEFAULT FALSE"),
-                ("approval_status", "VARCHAR(50) DEFAULT 'none'"),
-                ("token_cost", "FLOAT DEFAULT 0.0"),
-                ("trace_id", "VARCHAR(64)"),
-            ]
-            for col_name, col_type in new_cols:
-                try:
-                    await conn.execute(text(f"ALTER TABLE tasks ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
-                except Exception:
-                    try:
-                        await conn.execute(text(f"ALTER TABLE tasks ADD COLUMN {col_name} {col_type}"))
-                    except Exception:
-                        pass
-            try:
-                await conn.execute(text("ALTER TYPE taskstatus ADD VALUE IF NOT EXISTS 'awaiting_approval'"))
-                await conn.execute(text("ALTER TYPE taskstatus ADD VALUE IF NOT EXISTS 'rejected'"))
-            except Exception:
-                pass
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    if settings.ENABLE_DEMO_ACCOUNT:
+        from sqlalchemy import select
         from app.core.database import AsyncSessionLocal
         from app.core.security import get_password_hash
         from app.models.user import User
@@ -44,14 +24,9 @@ async def lifespan(_: FastAPI):
         async with AsyncSessionLocal() as session:
             existing = (await session.execute(select(User).where(User.email == "test@example.com"))).scalar_one_or_none()
             if not existing:
-                session.add(User(
-                    email="test@example.com",
-                    hashed_password=get_password_hash("password123"),
-                    full_name="Demo User",
-                ))
+                session.add(User(email="test@example.com", hashed_password=get_password_hash("password123"), full_name="Demo User"))
                 await session.commit()
-    except Exception as err:
-        print(f"Database initialization warning: {err}")
+
     yield
 
 
@@ -117,7 +92,7 @@ async def apex_exception_handler(_: Request, exc: ApexException):
 async def global_exception_handler(request: Request, exc: Exception):
     error_trace = traceback.format_exc()
     print(f"Server error on {request.url}: {error_trace}")
-    content: dict = {"detail": str(exc)}
+    content: dict = {"detail": str(exc) if settings.DEBUG else "An unexpected server error occurred."}
     if settings.DEBUG:
         content["trace"] = error_trace.splitlines()[-3:] if error_trace else []
     return JSONResponse(

@@ -36,6 +36,7 @@ export default function TaskDetailPage() {
   const [logs, setLogs] = useState<AgentLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"deliverable" | "plan" | "terminal" | "raw">("deliverable");
   const [copied, setCopied] = useState(false);
@@ -70,7 +71,11 @@ export default function TaskDetailPage() {
       return;
     }
 
-    if (!taskId) return;
+    if (!Number.isSafeInteger(taskId) || taskId < 1) {
+      setLoading(false);
+      setError("Invalid task ID.");
+      return;
+    }
 
     const fetchTask = async () => {
       try {
@@ -154,14 +159,42 @@ export default function TaskDetailPage() {
     return null;
   };
 
+  const needsApproval = task?.requires_approval && task.approval_status !== "approved";
+  const taskActive = task ? ["planning", "researching", "executing", "reflecting"].includes(task.status) : false;
+
+  useEffect(() => {
+    if (!taskActive || running) return;
+    let active = true;
+    let pending = false;
+    const timer = setInterval(async () => {
+      if (pending) return;
+      pending = true;
+      try {
+        const latest = await api.getTask(taskId);
+        if (active) setTask(latest);
+      } catch { /* Leave the last known state visible while disconnected. */ }
+      finally { pending = false; }
+    }, 2500);
+    return () => { active = false; clearInterval(timer); };
+  }, [taskActive, running, taskId]);
+
+  const handleReview = async (approve: boolean) => {
+    if (reviewing || !task) return;
+    setReviewing(true);
+    setError("");
+    try { setTask(await (approve ? api.approveTask(task.id) : api.rejectTask(task.id))); }
+    catch (err) { setError(err instanceof Error ? err.message : "Unable to update approval."); }
+    finally { setReviewing(false); }
+  };
+
   const handleRunAgent = () => {
-    if (running) return;
+    if (running || taskActive || needsApproval || task?.status === "rejected") return;
 
     setRunning(true);
     setError("");
     setLogs([]);
     setActiveTab("terminal");
-    setTask((prev) => (prev ? { ...prev, current_node: "supervisor", status: "running" } : prev));
+    setTask((prev) => (prev ? { ...prev, current_node: "supervisor", status: "planning" } : prev));
 
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
@@ -242,6 +275,7 @@ export default function TaskDetailPage() {
       (err) => {
         cleanup();
         setRunning(false);
+        void api.getTask(taskId).then(setTask).catch(() => {});
         setError(err.message || "Agent execution failed");
       }
     );
@@ -400,7 +434,7 @@ export default function TaskDetailPage() {
               <button
                 type="button"
                 onClick={handleRunAgent}
-                disabled={running}
+                disabled={running || taskActive || reviewing || Boolean(needsApproval) || task.status === "rejected"}
                 aria-label={task.final_output ? "Re-Run Pipeline" : "Initialize Agent"}
                 className="w-full sm:w-auto rounded-2xl bg-[#087F5B] hover:bg-[#066649] px-8 py-4 text-sm font-extrabold text-white shadow-lg shadow-[#087F5B]/20 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
               >
@@ -417,8 +451,18 @@ export default function TaskDetailPage() {
                 )}
               </button>
 
+              {needsApproval && task.status !== "rejected" && (
+                <div className="rounded-2xl border border-[#F4B942] bg-[#F4B942]/10 p-4 text-sm">
+                  <p className="mb-3">Review this goal before allowing code execution.</p>
+                  <div className="flex gap-3">
+                    <button type="button" disabled={reviewing} onClick={() => void handleReview(true)} className="rounded-lg bg-[#087F5B] px-4 py-2 text-white">Approve</button>
+                    <button type="button" disabled={reviewing} onClick={() => void handleReview(false)} className="rounded-lg border border-[#E76F51] px-4 py-2">Reject</button>
+                  </div>
+                </div>
+              )}
+
               {error && (
-                <div className="text-xs text-[#E76F51] font-medium flex items-center gap-2 bg-[#E76F51]/10 px-3 py-1.5 rounded-full border border-[#E76F51]/30">
+                <div role="alert" className="text-xs text-[#E76F51] font-medium flex items-center gap-2 bg-[#E76F51]/10 px-3 py-1.5 rounded-full border border-[#E76F51]/30">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#E76F51] animate-pulse" />
                   {error}
                 </div>
@@ -437,7 +481,7 @@ export default function TaskDetailPage() {
         {/* Tab Switcher & Quick Actions Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           {/* Tabs */}
-          <div role="tablist" aria-label="Task content views" className="flex items-center rounded-2xl bg-white p-1.5 border border-[#EADBCE] shadow-2xs">
+          <div role="tablist" aria-label="Task content views" className="flex flex-wrap items-center rounded-2xl bg-white p-1.5 border border-[#EADBCE] shadow-2xs">
             <button
               type="button"
               role="tab"
@@ -672,9 +716,9 @@ export default function TaskDetailPage() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   {/* Agent Role Filter */}
-                  <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 text-[11px] font-semibold text-[#EADBCE]">
+                  <div className="flex flex-wrap items-center gap-1 bg-white/5 rounded-xl p-1 text-[11px] font-semibold text-[#EADBCE]">
                     <Filter size={12} className="ml-1 mr-1 text-[#EADBCE]/60" />
                     {["all", "supervisor", "planner", "researcher", "executor", "reflector"].map(
                       (role) => (
@@ -768,7 +812,7 @@ export default function TaskDetailPage() {
                 <span className="font-mono text-xs font-bold text-[#EADBCE]">
                   APEX Internal State Inspector
                 </span>
-                <span className="text-xs text-[#7E6875]">FastAPI SQLite Model</span>
+                <span className="text-xs text-[#7E6875]">Task state</span>
               </div>
               <pre className="overflow-x-auto p-4 rounded-xl bg-black/30 font-mono text-xs text-[#087F5B] leading-relaxed">
                 {JSON.stringify(task, null, 2)}

@@ -4,6 +4,7 @@ import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { safeRedirect } from "@/lib/navigation";
 import { Eye, EyeOff, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import ApexLogo from "@/components/ApexLogo";
@@ -14,9 +15,7 @@ function LoginForm() {
   const { playIntroTransition } = useBrand();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get("redirect") || searchParams.get("next") || searchParams.get("returnUrl");
-  const targetUrl = rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-    ? rawRedirect
-    : "/";
+  const targetUrl = safeRedirect(rawRedirect);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,6 +26,7 @@ function LoginForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!email || !password) {
       setError("Please fill in both email and password.");
       return;
@@ -104,14 +104,7 @@ function LoginForm() {
             <label htmlFor="login-password" className="block text-xs font-bold uppercase tracking-wider text-[#3D2331]">
               Password
             </label>
-            <button
-              type="button"
-              aria-label="Forgot password help"
-              onClick={() => setInfoMessage("Default demo credentials: test@example.com / password123.")}
-              className="text-xs font-semibold text-[#087F5B] hover:text-[#066649] transition-colors"
-            >
-              Forgot Password?
-            </button>
+
           </div>
           <div className="relative">
             <input
@@ -143,7 +136,7 @@ function LoginForm() {
         )}
 
         {error && (
-          <div className="rounded-xl border border-[#E76F51]/30 bg-[#E76F51]/10 p-3 text-xs text-[#C84F33] font-medium flex items-center gap-2">
+          <div role="alert" className="rounded-xl border border-[#E76F51]/30 bg-[#E76F51]/10 p-3 text-xs text-[#C84F33] font-medium flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#E76F51] animate-pulse shrink-0" />
             <span>{error}</span>
           </div>
@@ -166,7 +159,7 @@ function LoginForm() {
         </button>
 
         {/* Quick fill demo credentials pill */}
-        <button
+        {process.env.NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT === "true" && <button
           type="button"
           aria-label="Auto-fill demo credentials"
           onClick={handleFillDemo}
@@ -174,7 +167,7 @@ function LoginForm() {
         >
           <CheckCircle2 size={13} className="text-[#087F5B]" />
           <span>Fill Demo Credentials (test@example.com)</span>
-        </button>
+        </button>}
       </form>
 
       {/* Footer */}

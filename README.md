@@ -1,3 +1,5 @@
+> Current review and deployment notes: [REVIEW.md](REVIEW.md). Historical test counts below describe earlier runs; use CI for current verification.
+
 # ⚡ APEX Agent: Self-Improving Agentic Task Automation System
 
 > **A Production-Oriented Multi-Agent Cognitive Orchestration Platform with Dynamic Failure Recovery, Restricted Code Execution, and Live Observability**
@@ -204,7 +206,7 @@ APEX implements a clear separation between durable database storage, in-process 
 ### Human-in-the-Loop (HITL) Governance
 - **Backend Approval Lifecycle**: Tasks support approval states (`pending`, `approved`, `rejected`) and dedicated management endpoints (`POST /api/v1/tasks/{id}/approve` and `POST /api/v1/tasks/{id}/reject`).
 - **Configurable Gate**: The code execution approval requirement is configurable via `REQUIRE_APPROVAL_FOR_CODE_EXECUTION` (currently `False` by default).
-- **Status**: The backend approval pipeline and endpoints are fully tested and functional. Frontend user-facing interactive Approve/Reject controls are reserved for upcoming UI iterations.
+- **Status**: The backend approval pipeline and endpoints are fully tested and functional. Frontend task pages expose Approve/Reject controls before execution.
 
 ---
 
@@ -259,7 +261,7 @@ The frontend is built on **Next.js 16 (App Router)** and **React 19** with a cus
 | **Refresh-Token Rotation** | **Implemented** | Refreshing access token rotates refresh token and revokes prior token |
 | **Token Blacklist / Revocation** | **Implemented** | Thread-safe in-memory blacklist with automatic TTL cleanup |
 | **HITL Backend Approval** | **Implemented** | `AWAITING_APPROVAL` status, `/approve` and `/reject` API endpoints |
-| **HITL Frontend UI Controls** | **Future Work** | API client methods ready; UI buttons not yet exposed |
+| **HITL Frontend UI Controls** | **Implemented** | Task pages expose approval controls |
 | **Full RAG / Vector Database** | **Future Work** | Uses token-overlap episodic memory; pgvector/Chroma not yet integrated |
 | **Container / MicroVM Sandbox** | **Future Work** | Subprocess + AST isolation used; gVisor/Wasm planned |
 | **Distributed Task Worker Queue**| **Future Work** | Uses FastAPI `BackgroundTasks`; Celery/Temporal planned |
@@ -316,7 +318,7 @@ npm run build  # Next.js 16.3.4 (Turbopack) production build succeeds cleanly
 
 ### Prerequisites
 - Python 3.11+ installed.
-- Node.js 18+ and npm installed.
+- Node.js 22.18+ and npm installed.
 
 ### Step 1: Clone and Configure Environment
 ```bash

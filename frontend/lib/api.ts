@@ -3,7 +3,7 @@ import type { AuthResponse, Task, User } from "@/types";
 export const getApiBase = (): string => {
   const envBase = process.env.NEXT_PUBLIC_API_BASE;
   if (envBase && !envBase.includes("localhost") && !envBase.includes("127.0.0.1")) {
-    return envBase;
+    return envBase.replace(/\/+$/, "");
   }
   if (
     typeof window !== "undefined" &&
@@ -12,7 +12,7 @@ export const getApiBase = (): string => {
   ) {
     return "https://apex-backend-fihp.onrender.com/api/v1";
   }
-  return envBase || "http://localhost:8000/api/v1";
+  return (envBase || "http://localhost:8000/api/v1").replace(/\/+$/, "");
 };
 
 export const getBackendUrl = (): string => {
@@ -41,33 +41,68 @@ export const authHeaders = (withAuth = true): Record<string, string> => {
   return headers;
 };
 
+export const clearSession = () => {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+};
+
+const errorMessage = async (response: Response): Promise<string> => {
+  try {
+    const body = await response.json();
+    const detail = body.detail ?? body.message;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) return detail.map((item) => item.msg ?? "Invalid input").join(". ");
+  } catch { /* Responses may be empty or plain text. */ }
+  return `Request failed (${response.status}). Please try again.`;
+};
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) { super(message); this.status = status; }
+}
+
 const handleJsonResponse = async <T>(response: Response): Promise<T> => {
-  if (!response.ok) {
-    if (response.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("access_token");
-      if (!window.location.pathname.startsWith("/login")) {
-        const currentPath = window.location.pathname + window.location.search;
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-      }
-    }
-
-    let message = `Request failed with status ${response.status}`;
-    try {
-      const errorBody = await response.json();
-      message = errorBody.detail ?? errorBody.message ?? JSON.stringify(errorBody);
-    } catch {
-      message = response.statusText || message;
-    }
-    throw new Error(message);
-  }
-
+  if (!response.ok) throw new ApiError(await errorMessage(response), response.status);
   return response.json() as Promise<T>;
+};
+
+let refreshPromise: Promise<AuthResponse> | null = null;
+
+/** Share token rotation across concurrent requests, then retry each request once. */
+const apiFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
+  const headers = new Headers(init.headers);
+  const authenticated = headers.has("Authorization");
+  const fetchOnce = () => fetch(url, {
+    ...init, headers,
+    signal: init.signal ?? AbortSignal.timeout(60_000),
+  });
+  let response = await fetchOnce();
+  if (response.status !== 401 || !authenticated || url.includes("/auth/logout")) return response;
+  if (typeof window !== "undefined" && localStorage.getItem("refresh_token")) {
+    try {
+      refreshPromise ??= api.refreshToken().finally(() => { refreshPromise = null; });
+      const tokens = await refreshPromise;
+      headers.set("Authorization", `Bearer ${tokens.access_token}`);
+      response = await fetchOnce();
+      if (response.status !== 401) return response;
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 401) throw error;
+    }
+  }
+  clearSession();
+  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+    const path = window.location.pathname + window.location.search;
+    // API utilities run outside React; a full navigation clears stale protected state.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign(`/login?redirect=${encodeURIComponent(path)}`);
+  }
+  return response;
 };
 
 export const api = {
   register: async (data: { email: string; password: string; full_name?: string }): Promise<User> => {
-    const response = await fetch(`${getApiBase()}/auth/register`, {
+    const response = await apiFetch(`${getApiBase()}/auth/register`, {
       method: "POST",
       headers: authHeaders(false),
       body: JSON.stringify({
@@ -80,7 +115,7 @@ export const api = {
   },
 
   login: async (data: { email: string; password: string }): Promise<AuthResponse> => {
-    const response = await fetch(`${getApiBase()}/auth/login`, {
+    const response = await apiFetch(`${getApiBase()}/auth/login`, {
       method: "POST",
       headers: authHeaders(false),
       body: JSON.stringify(data),
@@ -97,7 +132,7 @@ export const api = {
   },
 
   getMe: async (): Promise<User> => {
-    const response = await fetch(`${getApiBase()}/auth/me`, {
+    const response = await apiFetch(`${getApiBase()}/auth/me`, {
       headers: authHeaders(true),
     });
     return handleJsonResponse<User>(response);
@@ -105,7 +140,7 @@ export const api = {
 
   checkHealth: async (): Promise<boolean> => {
     try {
-      const response = await fetch(`${getBackendUrl()}/health`);
+      const response = await apiFetch(`${getBackendUrl()}/health`);
       return response.ok;
     } catch {
       return false;
@@ -113,7 +148,7 @@ export const api = {
   },
 
   createTask: async (goal: string, title?: string): Promise<Task> => {
-    const response = await fetch(`${getApiBase()}/tasks/`, {
+    const response = await apiFetch(`${getApiBase()}/tasks/`, {
       method: "POST",
       headers: authHeaders(true),
       body: JSON.stringify({
@@ -125,21 +160,21 @@ export const api = {
   },
 
   listTasks: async (): Promise<Task[]> => {
-    const response = await fetch(`${getApiBase()}/tasks/`, {
+    const response = await apiFetch(`${getApiBase()}/tasks/`, {
       headers: authHeaders(true),
     });
     return handleJsonResponse<Task[]>(response);
   },
 
   getTask: async (id: number): Promise<Task> => {
-    const response = await fetch(`${getApiBase()}/tasks/${id}`, {
+    const response = await apiFetch(`${getApiBase()}/tasks/${id}`, {
       headers: authHeaders(true),
     });
     return handleJsonResponse<Task>(response);
   },
 
   deleteTask: async (id: number): Promise<{ detail: string }> => {
-    const response = await fetch(`${getApiBase()}/tasks/${id}`, {
+    const response = await apiFetch(`${getApiBase()}/tasks/${id}`, {
       method: "DELETE",
       headers: authHeaders(true),
     });
@@ -147,7 +182,7 @@ export const api = {
   },
 
   approveTask: async (id: number): Promise<Task> => {
-    const response = await fetch(`${getApiBase()}/tasks/${id}/approve`, {
+    const response = await apiFetch(`${getApiBase()}/tasks/${id}/approve`, {
       method: "POST",
       headers: authHeaders(true),
     });
@@ -155,7 +190,7 @@ export const api = {
   },
 
   rejectTask: async (id: number): Promise<Task> => {
-    const response = await fetch(`${getApiBase()}/tasks/${id}/reject`, {
+    const response = await apiFetch(`${getApiBase()}/tasks/${id}/reject`, {
       method: "POST",
       headers: authHeaders(true),
     });
@@ -163,7 +198,7 @@ export const api = {
   },
 
   runTaskBackground: async (id: number): Promise<{ task_id: number; status: string; mode: string }> => {
-    const response = await fetch(`${getApiBase()}/tasks/${id}/run-background`, {
+    const response = await apiFetch(`${getApiBase()}/tasks/${id}/run-background`, {
       method: "POST",
       headers: authHeaders(true),
     });
@@ -190,7 +225,7 @@ export const api = {
     let closed = false;
     const abortController = new AbortController();
 
-    fetch(`${getApiBase()}/tasks/${id}/run`, {
+    apiFetch(`${getApiBase()}/tasks/${id}/run`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -200,7 +235,7 @@ export const api = {
     })
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error(`Execution stream failed with status ${response.status}`);
+          throw new Error(await errorMessage(response));
         }
         if (!response.body) {
           throw new Error("No response body available from task run");
@@ -215,26 +250,20 @@ export const api = {
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n\n");
+          const lines = buffer.split(/\r?\n\r?\n/);
           buffer = lines.pop() ?? "";
 
           for (const chunk of lines) {
-            const trimmed = chunk.trim();
-            if (!trimmed.startsWith("data:")) continue;
-
-            const payload = trimmed.slice(5).trim();
+            const payload = chunk.split(/\r?\n/).filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n").trim();
+            if (!payload) continue;
             if (payload === "[DONE]") {
               closed = true;
               onDone();
               return;
             }
 
-            try {
-              const parsed = JSON.parse(payload);
-              onEvent(parsed);
-            } catch (e) {
-              console.warn("Could not parse stream payload", payload, e);
-            }
+            const parsed = JSON.parse(payload);
+            onEvent(parsed);
           }
         }
 
@@ -262,6 +291,7 @@ export const api = {
       method: "POST",
       headers: authHeaders(false),
       body: JSON.stringify({ refresh_token }),
+      signal: AbortSignal.timeout(60_000),
     });
     const result = await handleJsonResponse<AuthResponse>(response);
     if (result.access_token && typeof window !== "undefined") {
@@ -276,15 +306,15 @@ export const api = {
   logout: async () => {
     if (typeof window !== "undefined") {
       try {
-        await fetch(`${getApiBase()}/auth/logout`, {
+        await apiFetch(`${getApiBase()}/auth/logout`, {
           method: "POST",
           headers: authHeaders(true),
+          body: localStorage.getItem("refresh_token") ? JSON.stringify({ refresh_token: localStorage.getItem("refresh_token") }) : undefined,
         });
       } catch {
         // Silently continue local cleanup if network fails
       }
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
+      clearSession();
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/login";
     }

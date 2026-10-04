@@ -75,7 +75,7 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
         )}
         <span className={`relative inline-flex rounded-full h-2 w-2 ${config.dot}`} />
       </span>
-      {s}
+      {s.replaceAll("_", " ")}
     </span>
   );
 }

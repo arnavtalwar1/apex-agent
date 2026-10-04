@@ -50,7 +50,10 @@ def test_observability_tracing_metrics():
 
 
 @pytest.mark.asyncio
-async def test_run_task_background_endpoint(client: AsyncClient, auth_user):
+async def test_run_task_background_endpoint(client: AsyncClient, auth_user, monkeypatch):
+    from unittest.mock import AsyncMock
+    worker = AsyncMock()
+    monkeypatch.setattr("app.api.tasks.execute_task_lifecycle", worker)
     _, headers = auth_user
 
     create_res = await client.post(
@@ -67,3 +70,5 @@ async def test_run_task_background_endpoint(client: AsyncClient, auth_user):
     assert data["status"] == "started"
     assert data["mode"] == "background"
     assert "thread_id" in data
+
+    worker.assert_awaited_once()

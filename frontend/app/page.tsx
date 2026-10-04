@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [goal, setGoal] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -52,24 +53,28 @@ export default function Dashboard() {
       return;
     }
 
+    let active = true;
     const fetchTasks = async () => {
+      setLoading(true);
+      setError("");
       try {
         const fetchedTasks = await api.listTasks();
-        setTasks(fetchedTasks);
+        if (active) setTasks(fetchedTasks);
       } catch (err) {
         console.error("Failed to load tasks", err);
-        setError("Unable to load tasks. Please try signing in again.");
+        if (active) setError("Unable to load tasks. Check your connection and try again.");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
-    fetchTasks();
-  }, [router]);
+    void fetchTasks();
+    return () => { active = false; };
+  }, [router, reloadKey]);
 
   const handleCreateTask = async (e: FormEvent) => {
     e.preventDefault();
-    if (!goal.trim()) return;
+    if (submitting || !goal.trim()) return;
 
     setSubmitting(true);
     setError("");
@@ -89,9 +94,9 @@ export default function Dashboard() {
     return tasks.filter((t) => {
       const matchesSearch =
         searchQuery.trim() === "" ||
-        (t.title && t.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        t.goal.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        String(t.id).includes(searchQuery);
+        (t.title && t.title.toLowerCase().includes(searchQuery.trim().toLowerCase())) ||
+        t.goal.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+        String(t.id).includes(searchQuery.trim());
 
       if (!matchesSearch) return false;
 
@@ -101,14 +106,15 @@ export default function Dashboard() {
       if (statusFilter === "running") {
         return ["planning", "researching", "executing", "reflecting"].includes(t.status.toLowerCase());
       }
-      return true;
+      return t.status.toLowerCase() === statusFilter;
     });
   }, [tasks, searchQuery, statusFilter]);
 
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.status.toLowerCase() === "completed").length;
   const totalReflections = tasks.reduce((acc, t) => acc + (t.reflection_count || 0), 0);
-  const successRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100;
+  const finishedTasks = completedTasks + tasks.filter((t) => t.status.toLowerCase() === "failed").length;
+  const successRate = finishedTasks > 0 ? Math.round((completedTasks / finishedTasks) * 100) : null;
 
   return (
     <div className="min-h-screen pb-16 bg-[#F7F3E8]">
@@ -130,13 +136,13 @@ export default function Dashboard() {
                 <span>Autonomous Agentic Orchestration</span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#3D2331] mb-2 leading-tight">
-                Self-Improving Multi-Agent <br />
+                Turn your goals into <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#087F5B] via-[#D49520] to-[#E76F51]">
-                  Cognitive Workflows
+                  finished work
                 </span>
               </h1>
               <p className="text-sm text-[#59414E] max-w-md leading-relaxed mt-2 font-medium">
-                Deploy autonomous AI workflows with automatic subtask decomposition, live web intelligence, Python sandbox execution, and reflection loops.
+                Describe a goal. APEX plans the steps, gathers evidence, executes code, and reviews the result.
               </p>
             </div>
 
@@ -154,7 +160,7 @@ export default function Dashboard() {
           <div className="rounded-3xl border border-[#EADBCE] bg-white/90 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-[#59414E]">
-                Cognitive Success
+                Completion rate
               </span>
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#087F5B]/10 text-[#087F5B] border border-[#087F5B]/20">
                 <CheckCircle2 size={18} />
@@ -163,18 +169,18 @@ export default function Dashboard() {
 
             <div className="my-4">
               <div className="text-4xl font-extrabold text-[#3D2331] tracking-tight">
-                {successRate}%
+                {loading ? "…" : successRate === null ? "—" : `${successRate}%`}
               </div>
               <div className="mt-2 h-2 w-full rounded-full bg-[#EADBCE] overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-[#087F5B] to-[#20C997] transition-all duration-1000"
-                  style={{ width: `${successRate}%` }}
+                  style={{ width: `${successRate ?? 0}%` }}
                 />
               </div>
             </div>
 
             <p className="text-xs text-[#7E6875]">
-              {completedTasks} completed out of {totalTasks} total operations
+              {completedTasks} completed · {finishedTasks} finished · {totalTasks} total
             </p>
           </div>
 
@@ -216,26 +222,27 @@ export default function Dashboard() {
               <label htmlFor="task-goal-input" className="sr-only">
                 Task Objective
               </label>
-              <div className="relative flex items-center">
-                <div className="absolute left-5 text-[#D49520] pointer-events-none">
+              <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="absolute left-5 top-4 text-[#D49520] pointer-events-none">
                   <Sparkles size={22} />
                 </div>
                 <input
                   id="task-goal-input"
                   type="text"
                   autoComplete="off"
+                  maxLength={10000}
                   aria-label="Task objective"
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                   placeholder="What would you like APEX to plan, research, or execute today?..."
-                  className="w-full rounded-2xl border border-[#EADBCE] bg-[#F7F3E8]/40 py-4 pl-14 pr-44 text-sm sm:text-base text-[#3D2331] placeholder-[#7E6875] focus:border-[#087F5B] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#087F5B]/10 transition-all shadow-inner"
+                  className="w-full rounded-2xl border border-[#EADBCE] bg-[#F7F3E8]/40 py-4 pl-14 pr-4 sm:pr-44 text-sm sm:text-base text-[#3D2331] placeholder-[#7E6875] focus:border-[#087F5B] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#087F5B]/10 transition-all shadow-inner"
                 />
-                <div className="absolute right-2">
+                <div className="sm:absolute sm:right-2">
                   <button
                     type="submit"
                     aria-label="Deploy Agent"
                     disabled={submitting || !goal.trim()}
-                    className="flex items-center gap-2 rounded-xl bg-[#087F5B] hover:bg-[#066649] px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-lg shadow-[#087F5B]/20 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full sm:w-auto flex justify-center items-center gap-2 rounded-xl bg-[#087F5B] hover:bg-[#066649] px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-lg shadow-[#087F5B]/20 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     {submitting ? (
                       <>
@@ -272,9 +279,10 @@ export default function Dashboard() {
             </div>
 
             {error && (
-              <div className="mt-4 rounded-xl border border-[#E76F51]/30 bg-[#E76F51]/10 px-4 py-2.5 text-xs text-[#C84F33] font-medium flex items-center gap-2">
+              <div role="alert" className="mt-4 rounded-xl border border-[#E76F51]/30 bg-[#E76F51]/10 px-4 py-2.5 text-xs text-[#C84F33] font-medium flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#E76F51] animate-pulse" />
                 {error}
+                <button type="button" onClick={() => setReloadKey((key) => key + 1)} className="ml-auto underline">Retry</button>
               </div>
             )}
           </div>
@@ -297,12 +305,13 @@ export default function Dashboard() {
             {/* Filter Tabs & Search Bar */}
             <div className="flex flex-wrap items-center gap-3">
               {/* Status Tabs */}
-              <div className="flex items-center rounded-xl bg-white p-1 border border-[#EADBCE] text-xs font-semibold text-[#59414E]">
-                {(["all", "running", "completed", "failed"] as const).map((tab) => (
+              <div className="flex flex-wrap items-center rounded-xl bg-white p-1 border border-[#EADBCE] text-xs font-semibold text-[#59414E]">
+                {(["all", "pending", "awaiting_approval", "running", "completed", "failed"] as const).map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     aria-label={`Filter tasks by ${tab} status`}
+                    aria-pressed={statusFilter === tab}
                     onClick={() => setStatusFilter(tab)}
                     className={`rounded-lg px-3 py-1.5 capitalize transition-all ${
                       statusFilter === tab
@@ -310,7 +319,7 @@ export default function Dashboard() {
                         : "hover:text-[#3D2331]"
                     }`}
                   >
-                    {tab}
+                    {tab.replaceAll("_", " ")}
                   </button>
                 ))}
               </div>

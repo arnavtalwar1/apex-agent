@@ -108,3 +108,15 @@ def test_sandbox_enforces_timeout():
     assert result.success is False
     assert "TIMEOUT" in result.stderr
     assert result.exit_code == 124
+
+
+def test_sandbox_blocks_indirect_io_network_and_dynamic_lookup():
+    snippets = [
+        'import pathlib', 'import urllib.request', 'import requests', 'import app.core.config',
+        'import io\nio.open("/etc/passwd")', 'from io import FileIO\nFileIO("/etc/passwd")',
+        'f = eval\nf("1+1")', 'getattr(object, "__subclasses__")',
+    ]
+    for code in snippets:
+        safe, violations = analyze_code_security(code)
+        assert not safe, code
+        assert violations

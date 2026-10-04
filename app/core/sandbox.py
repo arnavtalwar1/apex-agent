@@ -39,6 +39,15 @@ FORBIDDEN_MODULES = {
     "marshal",
 }
 
+# Calculation/data-processing modules only. Unlisted imports may expose the
+# filesystem, network, or application internals despite the module denylist.
+ALLOWED_MODULES = {
+    "math", "cmath", "statistics", "random", "decimal", "fractions", "numbers",
+    "json", "csv", "re", "datetime", "time", "calendar", "collections",
+    "itertools", "functools", "operator", "string", "textwrap", "io",
+    "base64", "hashlib", "heapq", "bisect", "array", "typing",
+}
+
 # Built-in functions forbidden from direct call
 FORBIDDEN_CALLS = {
     "exec",
@@ -49,6 +58,10 @@ FORBIDDEN_CALLS = {
     "input",
     "globals",
     "locals",
+    "getattr",
+    "setattr",
+    "delattr",
+    "vars",
 }
 
 # Forbidden dunder attribute accesses commonly used in sandbox escapes
@@ -60,6 +73,9 @@ FORBIDDEN_ATTRIBUTES = {
     "__code__",
     "__builtins__",
     "__import__",
+    "__dict__", "__getattribute__", "__getattr__", "__reduce__",
+    "__reduce_ex__", "__loader__", "__spec__", "__self__", "__func__",
+    "__closure__", "open", "FileIO",
 }
 
 # Safe environment variables allowed in the sandbox child process
@@ -70,7 +86,6 @@ SAFE_ENV_VARS = {
     "TEMP",
     "TMP",
     "PYTHONIOENCODING",
-    "PYTHONPATH",
     "LANG",
     "LC_ALL",
 }
@@ -93,24 +108,32 @@ class ASTSecurityAnalyzer(ast.NodeVisitor):
 
     def __init__(self, allowed_modules: Optional[set[str]] = None):
         self.violations: list[str] = []
-        self.allowed_modules = allowed_modules
+        self.allowed_modules = ALLOWED_MODULES if allowed_modules is None else allowed_modules
 
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
             root_module = alias.name.split(".")[0].lower()
             if root_module in FORBIDDEN_MODULES:
                 self.violations.append(f"Import of forbidden module '{alias.name}' (line {node.lineno})")
-            elif self.allowed_modules and root_module not in self.allowed_modules:
+            elif root_module not in self.allowed_modules:
                 self.violations.append(f"Module '{alias.name}' is not in allowed whitelist (line {node.lineno})")
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
+        for alias in node.names:
+            if alias.name in FORBIDDEN_ATTRIBUTES or alias.name in FORBIDDEN_CALLS:
+                self.violations.append(f"Import of restricted attribute '{alias.name}' (line {node.lineno})")
         if node.module:
             root_module = node.module.split(".")[0].lower()
             if root_module in FORBIDDEN_MODULES:
                 self.violations.append(f"Import from forbidden module '{node.module}' (line {node.lineno})")
-            elif self.allowed_modules and root_module not in self.allowed_modules:
+            elif root_module not in self.allowed_modules:
                 self.violations.append(f"Module '{node.module}' is not in allowed whitelist (line {node.lineno})")
+        self.generic_visit(node)
+
+    def visit_Name(self, node: ast.Name):
+        if isinstance(node.ctx, ast.Load) and node.id in FORBIDDEN_CALLS:
+            self.violations.append(f"Reference to prohibited built-in function '{node.id}' (line {node.lineno})")
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call):

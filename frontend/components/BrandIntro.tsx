@@ -34,7 +34,8 @@ export default function BrandIntro({ onComplete, forceShow = false }: BrandIntro
       }
 
       // Check session storage
-      const seen = sessionStorage.getItem("apex_intro_seen");
+      let seen: string | null = null;
+      try { seen = sessionStorage.getItem("apex_intro_seen"); } catch { /* Continue without session storage. */ }
       if (seen && !forceShow) {
         setIsVisible(false);
         if (onComplete) onComplete();

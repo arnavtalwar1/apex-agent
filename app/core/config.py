@@ -1,6 +1,8 @@
 import re
+import secrets
 from typing import Optional
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,7 +19,8 @@ class Settings(BaseSettings):
 	DATABASE_URL: str = "sqlite+aiosqlite:///./apex.db"
 	REDIS_URL: Optional[str] = None
 
-	JWT_SECRET_KEY: str = "apex-production-secret-key-replace-with-env"
+	JWT_SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(48))
+	ENABLE_DEMO_ACCOUNT: bool = False
 	JWT_ALGORITHM: str = "HS256"
 	JWT_EXPIRE_MINUTES: int = 60
 	JWT_REFRESH_EXPIRE_DAYS: int = 7

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { Task } from "@/types";
 import StatusBadge from "./StatusBadge";
 import { motion } from "framer-motion";
@@ -14,7 +14,6 @@ interface TaskListProps {
 }
 
 export default function TaskList({ tasks, onTaskDeleted }: TaskListProps) {
-  const router = useRouter();
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   if (!tasks || tasks.length === 0) {
@@ -78,8 +77,7 @@ export default function TaskList({ tasks, onTaskDeleted }: TaskListProps) {
           <motion.div
             variants={item}
             key={task.id}
-            onClick={() => router.push(`/tasks/${task.id}`)}
-            className="group cursor-pointer rounded-2xl border border-[#EADBCE] bg-white/85 backdrop-blur-md p-6 transition-all duration-300 hover:border-[#087F5B]/50 hover:bg-white hover:shadow-xl hover:shadow-[#087F5B]/5 hover:-translate-y-1 relative overflow-hidden flex flex-col justify-between"
+            className="group rounded-2xl border border-[#EADBCE] bg-white/85 backdrop-blur-md p-6 transition-all duration-300 hover:border-[#087F5B]/50 hover:bg-white hover:shadow-xl hover:shadow-[#087F5B]/5 hover:-translate-y-1 relative flex flex-col justify-between"
           >
             {/* Ambient hover glow inside card */}
             <div className="absolute top-0 right-0 -mr-16 -mt-16 h-36 w-36 rounded-full bg-[#F4B942]/10 blur-2xl group-hover:bg-[#087F5B]/10 transition-all pointer-events-none" />
@@ -104,7 +102,7 @@ export default function TaskList({ tasks, onTaskDeleted }: TaskListProps) {
                   <button
                     type="button"
                     onClick={(e) => handleDelete(e, task.id)}
-                    disabled={deletingId === task.id}
+                    disabled={deletingId !== null || ["planning", "researching", "executing", "reflecting"].includes(task.status)}
                     aria-label={`Delete task ${task.id}`}
                     className="h-8 w-8 rounded-lg bg-[#3D2331]/5 flex items-center justify-center text-[#7E6875] hover:bg-[#E76F51]/10 hover:text-[#E76F51] hover:border-[#E76F51]/30 border border-transparent transition-all z-20"
                     title="Delete Operation"
@@ -119,7 +117,9 @@ export default function TaskList({ tasks, onTaskDeleted }: TaskListProps) {
 
               {/* Title & Goal */}
               <h3 className="text-base font-bold text-[#3D2331] group-hover:text-[#087F5B] transition-colors line-clamp-1 mb-2">
-                {task.title || task.goal.slice(0, 60)}
+                <Link href={`/tasks/${task.id}`} className="after:absolute after:inset-0">
+                  {task.title || task.goal.slice(0, 60)}
+                </Link>
               </h3>
 
               <p className="text-xs text-[#59414E] line-clamp-2 leading-relaxed mb-4">

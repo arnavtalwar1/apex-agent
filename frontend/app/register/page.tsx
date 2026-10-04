@@ -4,6 +4,7 @@ import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { safeRedirect } from "@/lib/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import ApexLogo from "@/components/ApexLogo";
@@ -14,9 +15,7 @@ function RegisterForm() {
   const { playIntroTransition } = useBrand();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get("redirect") || searchParams.get("next") || searchParams.get("returnUrl");
-  const targetUrl = rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-    ? rawRedirect
-    : "/";
+  const targetUrl = safeRedirect(rawRedirect);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -27,6 +26,7 @@ function RegisterForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!email || !password) {
       setError("Please fill in all required fields.");
       return;

@@ -46,4 +46,4 @@ class Task(Base):
 	updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 	user = relationship("User", backref="tasks")
-	reflections = relationship("Reflection", backref="task", cascade="all, delete-orphan", passive_deletes=True)
+	reflections = relationship("Reflection", backref="task", cascade="all, delete-orphan")

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { api, getToken } from "@/lib/api";
 import type { User } from "@/types";
 import { LogOut, Sparkles } from "lucide-react";
@@ -11,10 +10,9 @@ import ApexLogo from "./ApexLogo";
 import { useBrand } from "./BrandProvider";
 
 export default function Navbar() {
-  const router = useRouter();
   const { replayIntro } = useBrand();
   const [user, setUser] = useState<User | null>(null);
-  const [isBackendHealthy, setIsBackendHealthy] = useState<boolean>(true);
+  const [isBackendHealthy, setIsBackendHealthy] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Check backend health
@@ -33,8 +31,7 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = () => {
-    api.logout();
-    router.push("/login");
+    void api.logout();
   };
 
   return (
@@ -77,7 +74,7 @@ export default function Navbar() {
             ></span>
           </span>
           <span className="text-[11px] font-medium text-[#3D2331]">
-            {isBackendHealthy ? "Autonomous Platform Online" : "Connecting to Engine..."}
+            {isBackendHealthy === null ? "Checking connection…" : isBackendHealthy ? "Engine online" : "Engine unavailable"}
           </span>
         </div>
 

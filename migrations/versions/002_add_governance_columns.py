@@ -21,32 +21,20 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        try:
+        with op.get_context().autocommit_block():
             op.execute("ALTER TYPE taskstatus ADD VALUE IF NOT EXISTS 'awaiting_approval'")
             op.execute("ALTER TYPE taskstatus ADD VALUE IF NOT EXISTS 'rejected'")
-        except Exception:
-            pass
 
-    # Add columns safely with default fallback values
-    try:
-        op.add_column('tasks', sa.Column('requires_approval', sa.Boolean(), nullable=True, server_default=sa.text('false')))
-    except Exception:
-        pass
-
-    try:
-        op.add_column('tasks', sa.Column('approval_status', sa.String(length=50), nullable=True, server_default=sa.text("'none'")))
-    except Exception:
-        pass
-
-    try:
-        op.add_column('tasks', sa.Column('token_cost', sa.Float(), nullable=True, server_default=sa.text('0.0')))
-    except Exception:
-        pass
-
-    try:
-        op.add_column('tasks', sa.Column('trace_id', sa.String(length=64), nullable=True))
-    except Exception:
-        pass
+    existing = {column["name"] for column in sa.inspect(bind).get_columns("tasks")}
+    columns = [
+        sa.Column("requires_approval", sa.Boolean(), server_default=sa.text("false")),
+        sa.Column("approval_status", sa.String(50), server_default=sa.text("'none'")),
+        sa.Column("token_cost", sa.Float(), server_default=sa.text("0.0")),
+        sa.Column("trace_id", sa.String(64)),
+    ]
+    for column in columns:
+        if column.name not in existing:
+            op.add_column("tasks", column)
 
 
 def downgrade() -> None:

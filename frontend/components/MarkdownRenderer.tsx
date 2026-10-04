@@ -24,7 +24,11 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
   let tableRows: string[][] = [];
 
   const flushCodeBlock = (key: string) => {
-    if (codeBuffer.length === 0) return;
+    if (codeBuffer.length === 0) {
+      inCodeBlock = false;
+      codeLanguage = "";
+      return;
+    }
     const fullCode = codeBuffer.join("\n");
     elements.push(
       <CodeBlock key={key} language={codeLanguage} code={fullCode} />
@@ -240,7 +244,15 @@ function parseInline(text: string): React.ReactNode {
               </strong>
             );
           }
-          return bPart;
+          return bPart.split(/(\[[^\]]+\]\([^)]+\))/g).map((segment, linkIndex) => {
+            const link = segment.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+            if (!link) return segment;
+            try {
+              const url = new URL(link[2]);
+              if (!["https:", "http:"].includes(url.protocol)) return link[1];
+              return <a key={linkIndex} href={url.href} target="_blank" rel="noopener noreferrer" className="text-[#087F5B] underline break-words">{link[1]}</a>;
+            } catch { return link[1]; }
+          });
         })}
       </React.Fragment>
     );

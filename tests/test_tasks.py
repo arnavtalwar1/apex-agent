@@ -1,6 +1,7 @@
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.models.reflection import Reflection
 from app.models.task import Task, TaskStatus
@@ -118,6 +119,8 @@ async def test_delete_task_success_and_cascade(client: AsyncClient, auth_user, d
     del_res = await client.delete(f"/api/v1/tasks/{task.id}", headers=headers)
     assert del_res.status_code == 200
     assert del_res.json()["detail"] == "Task deleted successfully"
+    remaining = await db_session.execute(select(Reflection).where(Reflection.task_id == task.id))
+    assert remaining.scalars().all() == []
 
     get_res = await client.get(f"/api/v1/tasks/{task.id}", headers=headers)
     assert get_res.status_code == 404
