@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import (
 	create_access_token,
+	create_password_reset_token,
 	create_refresh_token,
 	decode_token,
 	get_current_user,
@@ -18,8 +19,11 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.schemas.auth import (
+	ForgotPasswordRequest,
+	ForgotPasswordResponse,
 	MessageResponse,
 	RefreshTokenRequest,
+	ResetPasswordRequest,
 	TokenResponse,
 	UserLogin,
 	UserRegister,
@@ -106,3 +110,55 @@ async def logout(
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)) -> User:
 	return current_user
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(
+	body: ForgotPasswordRequest,
+	db: AsyncSession = Depends(get_db),
+) -> ForgotPasswordResponse:
+	"""
+	Generate a secure password reset token for the requested email.
+	Always returns a success acknowledgement to prevent user enumeration.
+	"""
+	result = await db.execute(select(User).where(User.email == body.email))
+	user = result.scalar_one_or_none()
+
+	reset_token = None
+	if user and user.is_active:
+		reset_token = create_password_reset_token({"sub": str(user.id), "email": user.email})
+
+	return ForgotPasswordResponse(
+		detail="If the email is registered, password reset instructions have been generated.",
+		reset_token=reset_token,
+	)
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+	body: ResetPasswordRequest,
+	db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+	"""
+	Verify the password reset token and update the user's password.
+	"""
+	payload = await decode_token(body.token, expected_type="password_reset")
+	user_id = payload.get("sub")
+	if not user_id:
+		raise HTTPException(status_code=400, detail="Invalid reset token payload")
+
+	try:
+		user_id_int = int(user_id)
+	except (ValueError, TypeError) as exc:
+		raise HTTPException(status_code=400, detail="Invalid reset token payload") from exc
+
+	result = await db.execute(select(User).where(User.id == user_id_int))
+	user = result.scalar_one_or_none()
+	if not user or not user.is_active:
+		raise HTTPException(status_code=404, detail="User account not found or inactive")
+
+	# Update password with bcrypt hash and revoke reset token
+	user.hashed_password = get_password_hash(body.new_password)
+	revoke_token(body.token)
+	await db.commit()
+	return MessageResponse(detail="Password has been successfully reset. You can now log in.")

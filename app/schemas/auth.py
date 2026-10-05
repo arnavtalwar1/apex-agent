@@ -26,6 +26,20 @@ class MessageResponse(BaseModel):
 	detail: str
 
 
+class ForgotPasswordRequest(BaseModel):
+	email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+	detail: str
+	reset_token: str | None = None
+
+
+class ResetPasswordRequest(BaseModel):
+	token: str
+	new_password: str = Field(..., min_length=8, description="Password must be at least 8 characters long")
+
+
 class UserResponse(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

@@ -87,6 +87,17 @@ def create_refresh_token(data: dict[str, Any], expires_delta: Optional[timedelta
 	return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
+def create_password_reset_token(data: dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+	to_encode = data.copy()
+	expire = datetime.now(timezone.utc) + (
+		expires_delta or timedelta(minutes=15)
+	)
+	to_encode["exp"] = expire
+	to_encode["type"] = "password_reset"
+	to_encode["jti"] = str(uuid.uuid4())
+	return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
 def revoke_token(token: str) -> None:
 	try:
 		payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])

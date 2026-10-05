@@ -166,3 +166,53 @@ async def test_get_me_nonexistent_user(client: AsyncClient):
     response = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {fake_token}"})
     assert response.status_code == 401
     assert response.json()["detail"] == "User not found"
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_and_reset_flow(client: AsyncClient):
+    # 1. Register a test user
+    email = "reset_test@example.com"
+    old_password = "initialPassword123"
+    new_password = "newSecurePassword456"
+    await client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": old_password, "full_name": "Reset Test"},
+    )
+
+    # 2. Request forgot password
+    forgot_res = await client.post("/api/v1/auth/forgot-password", json={"email": email})
+    assert forgot_res.status_code == 200
+    data = forgot_res.json()
+    assert "detail" in data
+    reset_token = data.get("reset_token")
+    assert reset_token is not None
+
+    # 3. Non-existent email still returns 200 (enumeration safety) with no token
+    ghost_res = await client.post("/api/v1/auth/forgot-password", json={"email": "nobody@example.com"})
+    assert ghost_res.status_code == 200
+    assert ghost_res.json()["reset_token"] is None
+
+    # 4. Reset password using valid reset token
+    reset_res = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": reset_token, "new_password": new_password},
+    )
+    assert reset_res.status_code == 200
+    assert "successfully reset" in reset_res.json()["detail"]
+
+    # 5. Token reuse is blocked (revocation)
+    replay_res = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": reset_token, "new_password": "yetAnotherPassword789"},
+    )
+    assert replay_res.status_code == 401
+
+    # 6. Verify old password no longer works
+    old_login = await client.post("/api/v1/auth/login", json={"email": email, "password": old_password})
+    assert old_login.status_code == 401
+
+    # 7. Verify new password logs in successfully
+    new_login = await client.post("/api/v1/auth/login", json={"email": email, "password": new_password})
+    assert new_login.status_code == 200
+    assert "access_token" in new_login.json()
+

@@ -320,4 +320,25 @@ export const api = {
       window.location.href = "/login";
     }
   },
+
+  forgotPassword: async (email: string): Promise<{ detail: string; reset_token?: string }> => {
+    const response = await fetch(`${getApiBase()}/auth/forgot-password`, {
+      method: "POST",
+      headers: authHeaders(false),
+      body: JSON.stringify({ email }),
+      signal: AbortSignal.timeout(60_000),
+    });
+    return handleJsonResponse<{ detail: string; reset_token?: string }>(response);
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<{ detail: string }> => {
+    const response = await fetch(`${getApiBase()}/auth/reset-password`, {
+      method: "POST",
+      headers: authHeaders(false),
+      body: JSON.stringify({ token, new_password: newPassword }),
+      signal: AbortSignal.timeout(60_000),
+    });
+    return handleJsonResponse<{ detail: string }>(response);
+  },
 };
+
