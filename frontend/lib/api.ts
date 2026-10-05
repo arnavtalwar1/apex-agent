@@ -2,7 +2,7 @@ import type { AuthResponse, Task, User } from "@/types";
 
 export const getApiBase = (): string => {
   const envBase = process.env.NEXT_PUBLIC_API_BASE;
-  if (envBase && !envBase.includes("localhost") && !envBase.includes("127.0.0.1")) {
+  if (envBase) {
     return envBase.replace(/\/+$/, "");
   }
   if (
@@ -10,9 +10,10 @@ export const getApiBase = (): string => {
     window.location.hostname !== "localhost" &&
     window.location.hostname !== "127.0.0.1"
   ) {
+    // ponytail: fallback to deployed backend if NEXT_PUBLIC_API_BASE unset; upgrade to Next.js rewrites
     return "https://apex-backend-fihp.onrender.com/api/v1";
   }
-  return (envBase || "http://localhost:8000/api/v1").replace(/\/+$/, "");
+  return "http://localhost:8000/api/v1";
 };
 
 export const getBackendUrl = (): string => {

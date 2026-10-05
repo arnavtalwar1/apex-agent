@@ -22,6 +22,15 @@ from app.schemas.task import TaskCreate, TaskResponse
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 
+ACTIVE_STATUSES = (TaskStatus.PLANNING, TaskStatus.RESEARCHING, TaskStatus.EXECUTING, TaskStatus.REFLECTING)
+NODE_STATUS_MAP = {
+	"planner": TaskStatus.PLANNING,
+	"researcher": TaskStatus.RESEARCHING,
+	"executor": TaskStatus.EXECUTING,
+	"reflector": TaskStatus.REFLECTING,
+}
+
+
 async def execute_task_lifecycle(task_id: int, thread_id: str):
 	"""Drain the same lifecycle used by the streaming endpoint."""
 	async for _ in task_events(task_id, thread_id):
@@ -30,9 +39,8 @@ async def execute_task_lifecycle(task_id: int, thread_id: str):
 
 async def claim_task(db: AsyncSession, task: Task) -> None:
 	"""Atomically claim execution so concurrent requests cannot run a task twice."""
-	active = [TaskStatus.PLANNING, TaskStatus.RESEARCHING, TaskStatus.EXECUTING, TaskStatus.REFLECTING]
 	result = await db.execute(
-		update(Task).where(Task.id == task.id, Task.status.not_in(active + [TaskStatus.REJECTED]))
+		update(Task).where(Task.id == task.id, Task.status.not_in(list(ACTIVE_STATUSES) + [TaskStatus.REJECTED]))
 		.values(status=TaskStatus.PLANNING, current_node="supervisor", final_output=None)
 	)
 	if result.rowcount != 1:
@@ -67,20 +75,11 @@ async def task_events(task_id: int, thread_id: str):
 							next_n = node_state.get("next_node", "").lower()
 							if next_n:
 								db_task.current_node = next_n
-						elif n_lower == "planner":
-							db_task.current_node = "planner"
-							db_task.status = TaskStatus.PLANNING
-							if "plan" in node_state:
+						elif n_lower in NODE_STATUS_MAP:
+							db_task.current_node = n_lower
+							db_task.status = NODE_STATUS_MAP[n_lower]
+							if n_lower == "planner" and "plan" in node_state:
 								db_task.plan = node_state["plan"]
-						elif n_lower == "researcher":
-							db_task.current_node = "researcher"
-							db_task.status = TaskStatus.RESEARCHING
-						elif n_lower == "executor":
-							db_task.current_node = "executor"
-							db_task.status = TaskStatus.EXECUTING
-						elif n_lower == "reflector":
-							db_task.current_node = "reflector"
-							db_task.status = TaskStatus.REFLECTING
 						await session.commit()
 
 				if "reflector" in update and db_task:
@@ -212,7 +211,7 @@ async def approve_task(
 	if not task:
 		raise HTTPException(status_code=404, detail="Task not found")
 
-	if task.status in {TaskStatus.PLANNING, TaskStatus.RESEARCHING, TaskStatus.EXECUTING, TaskStatus.REFLECTING}:
+	if task.status in ACTIVE_STATUSES:
 		raise HTTPException(status_code=409, detail="Cannot modify a running task")
 
 	task.approval_status = "approved"
@@ -234,7 +233,7 @@ async def reject_task(
 	if not task:
 		raise HTTPException(status_code=404, detail="Task not found")
 
-	if task.status in {TaskStatus.PLANNING, TaskStatus.RESEARCHING, TaskStatus.EXECUTING, TaskStatus.REFLECTING}:
+	if task.status in ACTIVE_STATUSES:
 		raise HTTPException(status_code=409, detail="Cannot modify a running task")
 
 	task.approval_status = "rejected"
@@ -256,7 +255,7 @@ async def delete_task(
 	if not task:
 		raise HTTPException(status_code=404, detail="Task not found")
 
-	if task.status in {TaskStatus.PLANNING, TaskStatus.RESEARCHING, TaskStatus.EXECUTING, TaskStatus.REFLECTING}:
+	if task.status in ACTIVE_STATUSES:
 		raise HTTPException(status_code=409, detail="Cannot modify a running task")
 
 	await db.delete(task)

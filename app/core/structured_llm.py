@@ -19,13 +19,6 @@ class SupervisorDecision(BaseModel):
     reasoning: str = Field(default="", description="Reason for selecting the next agent")
 
 
-class PlanOutput(BaseModel):
-    """Structured plan decomposition from the planner node."""
-
-    steps: list[str] = Field(default_factory=list, description="Ordered actionable execution steps")
-    code_snippet: Optional[str] = Field(default=None, description="Executable Python code block if required")
-    tools_needed: list[str] = Field(default_factory=list, description="Tools needed for this plan")
-
 
 class ReflectionOutput(BaseModel):
     """Structured critique and self-correction from the reflector node."""
