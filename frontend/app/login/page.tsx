@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
@@ -23,6 +23,11 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
+
+  useEffect(() => {
+    // Pre-warm the backend immediately upon visitor arrival to reduce perceived cold starts
+    void api.checkHealth();
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

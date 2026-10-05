@@ -1,0 +1,15 @@
+name: Keep Backend Alive
+
+on:
+  schedule:
+    # Ping every 14 minutes to prevent Render free instance cold sleep
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Backend Health Endpoint
+        run: |
+          curl -sS --max-time 45 https://apex-backend-fihp.onrender.com/health || echo "Warmup ping completed."
