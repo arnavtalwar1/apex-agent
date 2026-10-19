@@ -9,7 +9,7 @@ This guide walks you through deploying **APEX Agent** live on production infrast
 ```
 +------------------------------------+          +------------------------------------+
 |         Vercel (Frontend)          |          |      Render / Railway (Backend)     |
-|   https://apex-agent.vercel.app    +--------->|   https://apex-backend.onrender.com |
+|   https://apex-agent-pink.vercel.app  +--------->|   https://apex-backend-fihp.onrender.com |
 |   Next.js 16 App Router + SSE      |  HTTPS   |   FastAPI + LangGraph Execution     |
 +------------------------------------+          +-----------------+------------------+
                                                                   |
@@ -125,7 +125,7 @@ You have two simple options on [Render.com](https://render.com):
 
 ## 🌐 Step 4: Verification & Live Test
 
-1. Visit your live Vercel URL (e.g., `https://apex-agent.vercel.app`).
+1. Visit your live Vercel URL (e.g., `https://apex-agent-pink.vercel.app`).
 2. Observe the top navigation bar:
    - The status badge should indicate `BACKEND ONLINE` (green).
 3. Click **Register** (`/register`) and create your user account.
