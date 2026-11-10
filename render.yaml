@@ -11,9 +11,9 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.10
       - key: DATABASE_URL
-        fromDatabase:
-          name: apex-db
-          property: connectionString
+        # Set the external Neon URL privately in Render, never in this file.
+        # Existing services retain their configured value on Blueprint sync.
+        sync: false
       - key: OPENAI_API_KEY
         sync: false
       - key: GROQ_API_KEY
@@ -36,10 +36,3 @@ services:
         value: gpt-4o-mini
       - key: DEBUG
         value: "false"
-
-databases:
-  - name: apex-db
-    plan: free
-    region: oregon
-    databaseName: apex
-    user: apex_user
